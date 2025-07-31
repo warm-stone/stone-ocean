@@ -22,13 +22,16 @@ dependencies {
 	implementation 'com.baomidou:mybatis-plus-spring-boot3-starter:3.5.12'
 	implementation 'com.mysql:mysql-connector-j:9.3.0'
 	implementation 'org.projectlombok:lombok:1.18.38'
+	implementation 'org.springframework:spring-web:7.0.0-M7'
+	implementation 'io.swagger:swagger-annotations:1.6.16'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'com.baomidou:mybatis-plus-boot-starter-test:3.5.12'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
 //	临时 代码生成
-	implementation 'com.baomidou:mybatis-plus-generator:3.5.12'
+	testImplementation 'com.baomidou:mybatis-plus-generator:3.5.12'
+	testImplementation 'org.freemarker:freemarker'
 }
 
 tasks.named('test') {
