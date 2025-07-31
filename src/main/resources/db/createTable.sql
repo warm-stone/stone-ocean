@@ -55,7 +55,7 @@ CREATE TABLE t_vote4fun_rank_list
     cover_url     VARCHAR(255) COMMENT '封面图',
     agree_name    VARCHAR(12) COMMENT '投票操作的显示名称',
     disagree_name VARCHAR(12) COMMENT '反对操作的显示名称',
-    created_by    BIGINT       NOT NULL COMMENT '创建者ID',
+    created_by    BIGINT COMMENT '创建者ID',
 
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -98,9 +98,9 @@ CREATE TABLE t_vote4fun_announcement
     publisher_id BIGINT       NOT NULL COMMENT '发布者ID（必须是成员）',
     expires_at   DATETIME COMMENT '过期时间（可选）',
 
-    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at      DATETIME COMMENT '删除时间，NULL 表示未删除'
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at   DATETIME COMMENT '删除时间，NULL 表示未删除'
 
 );
 
