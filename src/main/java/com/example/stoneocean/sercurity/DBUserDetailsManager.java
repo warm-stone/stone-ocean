@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.stoneocean.entity.User;
 import com.example.stoneocean.mapper.UserMapper;
 import jakarta.annotation.Resource;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsPasswordService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -15,8 +17,7 @@ import java.util.ArrayList;
 @Component
 public class DBUserDetailsManager implements UserDetailsManager, UserDetailsPasswordService {
 
-    @Resource
-    private UserMapper userMapper;
+    private final UserMapper userMapper;
 
     public DBUserDetailsManager(UserMapper userMapper) {
         this.userMapper = userMapper;
@@ -49,7 +50,10 @@ public class DBUserDetailsManager implements UserDetailsManager, UserDetailsPass
 
     @Override
     public boolean userExists(String username) {
-        return false;
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_account", username);
+        User user = userMapper.selectOne(queryWrapper);
+        return user != null;
     }
 
     @Override
@@ -60,15 +64,8 @@ public class DBUserDetailsManager implements UserDetailsManager, UserDetailsPass
         if (user == null) {
             throw new UsernameNotFoundException("user '" + username + "' not found");
         }
-        return new org.springframework.security.core.userdetails.User(
-                user.getUserAccount(),
-                user.getPasswordHash(),
-                true,
-                true,
-                true,
-                true,
-                new ArrayList<>()
-        );
+
+        return user;
     }
 
 }

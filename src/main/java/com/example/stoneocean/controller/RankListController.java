@@ -3,6 +3,7 @@ package com.example.stoneocean.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.stoneocean.entity.RankList;
 import com.example.stoneocean.service.IRankListService;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.stereotype.Controller;
 
@@ -27,7 +28,11 @@ public class RankListController {
 
     @GetMapping("/page")
     public Page<RankList> getRankList(@RequestParam(name = "page", defaultValue = "0") int page,
-                                      @RequestParam(name = "size", defaultValue = "10") int size) {
+                                      @RequestParam(name = "size", defaultValue = "10") int size,
+                                      Authentication authentication) {
+        String s =  "Hello, " + authentication.getName() + "!";
+        System.out.println("s = " + s);
+
         return service.getRankListByPage(page, size);
     }
 

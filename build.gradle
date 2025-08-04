@@ -22,6 +22,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+
+
 
 	implementation 'com.baomidou:mybatis-plus-spring-boot3-starter:3.5.12'
 	implementation 'com.baomidou:mybatis-plus-jsqlparser:3.5.12'
@@ -33,10 +36,11 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'com.baomidou:mybatis-plus-boot-starter-test:3.5.12'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testImplementation 'org.springframework.security:spring-security-test'
 
 //	临时 代码生成
-	testImplementation 'com.baomidou:mybatis-plus-generator:3.5.12'
-	testImplementation 'org.freemarker:freemarker'
+	developmentOnly 'com.baomidou:mybatis-plus-generator:3.5.12'
+	developmentOnly 'org.freemarker:freemarker'
 }
 
 tasks.named('test') {

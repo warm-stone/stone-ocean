@@ -5,13 +5,17 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * <p>
- * 
+ *
  * </p>
  *
  * @author warmstone
@@ -19,7 +23,7 @@ import java.time.LocalDateTime;
  */
 @TableName("t_user")
 @ApiModel(value = "User对象", description = "")
-public class User implements Serializable {
+public class User implements UserDetails {
 
     private static final long serialVersionUID = 1L;
 
@@ -163,18 +167,37 @@ public class User implements Serializable {
     @Override
     public String toString() {
         return "User{" +
-            "id = " + id +
-            ", userAccount = " + userAccount +
-            ", passwordHash = " + passwordHash +
-            ", email = " + email +
-            ", phone = " + phone +
-            ", nickname = " + nickname +
-            ", sex = " + sex +
-            ", des = " + des +
-            ", avatarUrl = " + avatarUrl +
-            ", createdAt = " + createdAt +
-            ", updatedAt = " + updatedAt +
-            ", deletedAt = " + deletedAt +
-            "}";
+                "id = " + id +
+                ", userAccount = " + userAccount +
+                ", passwordHash = " + passwordHash +
+                ", email = " + email +
+                ", phone = " + phone +
+                ", nickname = " + nickname +
+                ", sex = " + sex +
+                ", des = " + des +
+                ", avatarUrl = " + avatarUrl +
+                ", createdAt = " + createdAt +
+                ", updatedAt = " + updatedAt +
+                ", deletedAt = " + deletedAt +
+                "}";
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of();
+    }
+
+    @Override
+    public String getPassword() {
+        return this.getPasswordHash();
+    }
+
+    @Override
+    public String getUsername() {
+        return this.getUserAccount();
+    }
+
+    public User getUser() {
+        return this;
     }
 }
