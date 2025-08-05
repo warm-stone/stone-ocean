@@ -2,7 +2,6 @@ package com.example.stoneocean.service.impl;
 
 import com.example.stoneocean.entity.User;
 import com.example.stoneocean.mapper.UserMapper;
-import com.example.stoneocean.sercurity.DBUserDetailsManager;
 import com.example.stoneocean.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,10 +17,10 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
-    private final DBUserDetailsManager dbUserDetailsManager;
+    private final DBUserDetailsManagerService dbUserDetailsManagerService;
 
-    public UserServiceImpl(DBUserDetailsManager dbUserDetailsManager) {
-        this.dbUserDetailsManager = dbUserDetailsManager;
+    public UserServiceImpl(DBUserDetailsManagerService dbUserDetailsManagerService) {
+        this.dbUserDetailsManagerService = dbUserDetailsManagerService;
     }
 
     @Override
@@ -31,6 +30,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
                 .username(user.getUserAccount())
                 .password(user.getPasswordHash())
                 .build();
-        dbUserDetailsManager.createUser(userDetails);
+        dbUserDetailsManagerService.createUser(userDetails);
     }
 }

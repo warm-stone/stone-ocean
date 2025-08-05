@@ -16,13 +16,17 @@
 
 package com.example.stoneocean.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.stoneocean.entity.ApiResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
@@ -34,19 +38,22 @@ import java.util.stream.Collectors;
  * @author Josh Cummings
  */
 @RestController
+@RequestMapping("/oauth2")
 public class TokenController {
 
-	private final JwtEncoder encoder;
+    private final JwtEncoder encoder;
+    private ClientRegistrationRepository clientRegistrationRepository;
 
-	public TokenController(JwtEncoder encoder) {
-		this.encoder = encoder;
-	}
+    public TokenController(JwtEncoder encoder, ClientRegistrationRepository clientRegistrationRepository) {
+        this.encoder = encoder;
+        this.clientRegistrationRepository = clientRegistrationRepository;
+    }
 
-	@PostMapping("/token")
-	public String token(Authentication authentication) {
-		Instant now = Instant.now();
-		long expiry = 36000L;
-		// @formatter:off
+    @PostMapping("/token")
+    public String token(Authentication authentication) {
+        Instant now = Instant.now();
+        long expiry = 36000L;
+        // @formatter:off
 		String scope = authentication.getAuthorities().stream()
 				.map(GrantedAuthority::getAuthority)
 				.collect(Collectors.joining(" "));
@@ -58,7 +65,15 @@ public class TokenController {
 				.claim("scope", scope)
 				.build();
 		// @formatter:on
-		return this.encoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
-	}
+        return this.encoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+    }
+
+    @PostMapping("/clientRegistration")
+    public ApiResponse<ClientRegistration> clientRegistration(@RequestParam String clientRegistrationId) {
+        return new ApiResponse<ClientRegistration>(0,
+                "成功",
+                this.clientRegistrationRepository.findByRegistrationId("github"));
+    }
+
 
 }

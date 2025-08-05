@@ -1,25 +1,20 @@
-package com.example.stoneocean.sercurity;
+package com.example.stoneocean.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.stoneocean.entity.User;
 import com.example.stoneocean.mapper.UserMapper;
-import jakarta.annotation.Resource;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsPasswordService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-
 @Component
-public class DBUserDetailsManager implements UserDetailsManager, UserDetailsPasswordService {
+public class DBUserDetailsManagerService implements UserDetailsManager, UserDetailsPasswordService {
 
     private final UserMapper userMapper;
 
-    public DBUserDetailsManager(UserMapper userMapper) {
+    public DBUserDetailsManagerService(UserMapper userMapper) {
         this.userMapper = userMapper;
     }
 

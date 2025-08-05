@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * <p>
- *  前端控制器
+ * 前端控制器
  * </p>
  *
  * @author warmstone
@@ -19,13 +19,23 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/user")
 public class UserController {
-    private IUserService userService;
+    private final IUserService userService;
+
     public UserController(IUserService userService) {
         this.userService = userService;
     }
 
+    private boolean checkUser(User user) {
+        if (user == null) return false;
+        if (user.getUsername() == null
+                || user.getPassword() == null
+                || user.getNickname() == null) return false;
+        return true;
+    }
+
     @PostMapping("/add")
     public void add(@RequestBody User user) {
+
         userService.saveUserDetails(user);
     }
 }
