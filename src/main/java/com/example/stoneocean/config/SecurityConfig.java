@@ -9,7 +9,6 @@ import com.nimbusds.jose.proc.SecurityContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -17,59 +16,40 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
-import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
-import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
 
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 
 @Configuration
-//@EnableWebSecurity        // 该注解启用 Spring Security 的 web 安全功能。 spring boot类加载则自动启用
 public class SecurityConfig {
 
 
     @Bean
-    @Order(0)
-    public SecurityFilterChain securityFilterChain0(HttpSecurity http) throws Exception {
-        http.securityMatcher("/oauth2/clientRegistration")
+    public SecurityFilterChain securityFilterChain1(HttpSecurity http) throws Exception {
+        http
                 .authorizeHttpRequests((authorize) -> authorize
-                        .anyRequest().permitAll()
+                        .requestMatchers("/").permitAll()
+                        .anyRequest().authenticated()
                 )
                 .csrf((csrf) -> csrf.ignoringRequestMatchers("/oauth2/**"))
-        ;
-        return http.build();
-    }
+                .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/nothing")
+                )
+                .httpBasic(Customizer.withDefaults())
+                .oauth2ResourceServer(oauth2 ->
+                        oauth2.jwt(Customizer.withDefaults()))
+                .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-    @Bean
-    @Order(1)
-    public SecurityFilterChain securityFilterChain1(HttpSecurity http) throws Exception {
-        // @formatter:off
-        http.securityMatcher("/oauth2/token")
-            .authorizeHttpRequests((authorize) -> authorize
-                    .anyRequest().authenticated()
-            )
-            .csrf((csrf) -> csrf.ignoringRequestMatchers("/oauth2/**"))
-            .httpBasic(Customizer.withDefaults())
-            .oauth2ResourceServer(oauth2 ->
-                    oauth2.jwt(Customizer.withDefaults()))
-            .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .exceptionHandling((exceptions) -> exceptions
-                    .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
-                    .accessDeniedHandler(new BearerTokenAccessDeniedHandler())
-            )
         ;
-        // @formatter:on
         return http.build();
     }
 
 
     @Value("${jwt.public.key}")
     private RSAPublicKey key;
-
     @Value("${jwt.private.key}")
     private RSAPrivateKey priv;
-
 
     @Bean
     JwtDecoder jwtDecoder() {

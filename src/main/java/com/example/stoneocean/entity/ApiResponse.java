@@ -1,12 +1,16 @@
 package com.example.stoneocean.entity;
 
 
+import lombok.Data;
+
 import java.io.Serial;
 import java.io.Serializable;
 
 /*
  * 通用返回结构
  * */
+
+@Data
 public class ApiResponse<T> implements Serializable {
 
     @Serial
@@ -26,27 +30,4 @@ public class ApiResponse<T> implements Serializable {
         this.data = data;
     }
 
-    public int getStatusCode() {
-        return statusCode;
-    }
-
-    public void setStatusCode(int statusCode) {
-        this.statusCode = statusCode;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public T getData() {
-        return data;
-    }
-
-    public void setData(T data) {
-        this.data = data;
-    }
 }

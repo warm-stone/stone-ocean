@@ -16,17 +16,13 @@
 
 package com.example.stoneocean.controller;
 
-import com.example.stoneocean.entity.ApiResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.client.registration.ClientRegistration;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
@@ -38,15 +34,13 @@ import java.util.stream.Collectors;
  * @author Josh Cummings
  */
 @RestController
-@RequestMapping("/oauth2")
+@RequestMapping("/token")
 public class TokenController {
 
     private final JwtEncoder encoder;
-    private ClientRegistrationRepository clientRegistrationRepository;
 
-    public TokenController(JwtEncoder encoder, ClientRegistrationRepository clientRegistrationRepository) {
+    public TokenController(JwtEncoder encoder) {
         this.encoder = encoder;
-        this.clientRegistrationRepository = clientRegistrationRepository;
     }
 
     @PostMapping("/token")
@@ -66,13 +60,6 @@ public class TokenController {
 				.build();
 		// @formatter:on
         return this.encoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
-    }
-
-    @PostMapping("/clientRegistration")
-    public ApiResponse<ClientRegistration> clientRegistration(@RequestParam String clientRegistrationId) {
-        return new ApiResponse<ClientRegistration>(0,
-                "成功",
-                this.clientRegistrationRepository.findByRegistrationId("github"));
     }
 
 
