@@ -1,0 +1,40 @@
+server:
+  port: 8101
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: stone-ocean
+  datasource:
+    url: ${DATASOURCE_URL}
+    username: ${DATASOURCE_USR}
+    password: ${DATASOURCE_PSW}
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            # stone-ocean
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+  servlet:
+    multipart:
+      max-file-size: 1MB
+      max-request-size: 10MB
+      enabled: true
+file:
+  upload:
+    url: ${FILE_PATH}
+jwt:
+  private:
+    key: classpath:keyPair/app.key
+  public:
+    key: classpath:keyPair/app.pub
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.boot.autoconfigure: DEBUG

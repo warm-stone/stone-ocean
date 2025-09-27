@@ -18,20 +18,42 @@ repositories {
 }
 
 dependencies {
+
+	implementation "me.paulschwarz:spring-dotenv:4.0.0"
 	implementation 'org.springframework.boot:spring-boot-starter'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
 	implementation 'com.baomidou:mybatis-plus-spring-boot3-starter:3.5.12'
+	implementation 'com.baomidou:mybatis-plus-jsqlparser:3.5.12'
+
 	implementation 'com.mysql:mysql-connector-j:9.3.0'
-	implementation 'org.projectlombok:lombok:1.18.38'
-	implementation 'org.springframework:spring-web:7.0.0-M7'
 	implementation 'io.swagger:swagger-annotations:1.6.16'
 
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+	// 仅在编译期提供 Lombok API
+	compileOnly 'org.projectlombok:lombok:1.18.38'
+	// 指定 Lombok 作为注解处理器
+	annotationProcessor 'org.projectlombok:lombok:1.18.38'
+	//注解帮助
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+	testCompileOnly 'org.projectlombok:lombok:1.18.38'
+	testAnnotationProcessor 'org.projectlombok:lombok:1.18.38'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'com.baomidou:mybatis-plus-boot-starter-test:3.5.12'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testImplementation 'org.springframework.security:spring-security-test'
 
 //	临时 代码生成
-	testImplementation 'com.baomidou:mybatis-plus-generator:3.5.12'
-	testImplementation 'org.freemarker:freemarker'
+	testAndDevelopmentOnly 'com.baomidou:mybatis-plus-generator:3.5.12'
+	testAndDevelopmentOnly 'org.freemarker:freemarker'
 }
 
 tasks.named('test') {

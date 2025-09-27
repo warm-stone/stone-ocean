@@ -1,0 +1,26 @@
+package com.example.stoneocean.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.example.stoneocean.entity.VoteRecord;
+import com.example.stoneocean.entity.dto.VoteRecordSumDTO;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
+
+public interface VoteRecordMapper extends BaseMapper<VoteRecord> {
+
+    @Select("SELECT creator, SUM(vote_count) AS voteCount " +
+            "FROM t_vote4fun_vote_record " +
+            "WHERE rank_member_id = #{rankMemberId} " +
+            "GROUP BY creator")
+    List<VoteRecordSumDTO> selectVoteSumByRankMemberId(@Param("rankMemberId") Long rankMemberId);
+
+    @Select("SELECT * " +
+            "FROM t_vote4fun_vote_record " +
+            "WHERE rank_member_id = #{rankMemberId} " +
+            "ORDER BY created_time DESC " +
+            "LIMIT 1")
+    VoteRecord selectLastByRankMemberId(@Param("rankMemberId") Long rankMemberId);
+
+}

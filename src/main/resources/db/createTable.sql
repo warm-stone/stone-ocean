@@ -1,24 +1,34 @@
-CREATE DATABASE stone_ocean;
-use stone_ocean;
 
 ############################################
 # 用户
-DROP TABLE IF EXISTS `t_user`;
 
 CREATE TABLE t_user
 (
     id            BIGINT PRIMARY KEY AUTO_INCREMENT,
-    user_account  VARCHAR(50) UNIQUE NOT NULL COMMENT '登录账号',
-    password_hash VARCHAR(255)       NOT NULL COMMENT '密码哈希',
+    account       VARCHAR(50) UNIQUE NOT NULL COMMENT '登录账号',
+    password_hash VARCHAR(255) COMMENT '密码哈希',
     email         VARCHAR(100) UNIQUE,
     phone         VARCHAR(32),
     nickname      VARCHAR(50) UNIQUE NOT NULL DEFAULT '' COMMENT '用户显示名',
     sex           VARCHAR(16),
     des           varchar(128),
     avatar_url    VARCHAR(255),
-    created_at    DATETIME                    DEFAULT CURRENT_TIMESTAMP,
-    updated_at    DATETIME                    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at    DATETIME COMMENT '删除时间，NULL 表示未删除'
+    created_time  DATETIME                    DEFAULT CURRENT_TIMESTAMP,
+    updated_time  DATETIME                    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_time  DATETIME COMMENT '删除时间，NULL 表示未删除'
+);
+
+# 三方账号
+CREATE TABLE t_third_party_account
+(
+    id           BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id      BIGINT,
+    third_id     VARCHAR(64),
+    account_type VARCHAR(24),
+    info         JSON,
+    FOREIGN KEY idx_third_party_account_user_id (user_id) REFERENCES t_user (id),
+    INDEX idx_third_party_account_third_id (third_id)
+
 );
 ############################################
 # 简历
@@ -28,7 +38,13 @@ CREATE TABLE t_experience
     biographicId INT,
     title        VARCHAR(32),
     exp          VARCHAR(1024),
-    ord          INT
+    ord          INT,
+
+    creator      BIGINT NOT NULL COMMENT '创建者ID',
+    created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    modifier     BIGINT,
+    updated_time DATETIME,
+    deleted_time DATETIME COMMENT '删除时间，NULL 表示未删除'
 );
 
 CREATE TABLE t_biographical_notes
@@ -40,7 +56,13 @@ CREATE TABLE t_biographical_notes
     university      varchar(64),
     graduation_date DATE,
     sex             varchar(8),
-    skill           varchar(1024)
+    skill           varchar(1024),
+
+    creator         BIGINT NOT NULL COMMENT '创建者ID',
+    created_time    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    modifier        BIGINT,
+    updated_time    DATETIME,
+    deleted_time    DATETIME COMMENT '删除时间，NULL 表示未删除'
 
 );
 
@@ -55,11 +77,12 @@ CREATE TABLE t_vote4fun_rank_list
     cover_url     VARCHAR(255) COMMENT '封面图',
     agree_name    VARCHAR(12) COMMENT '投票操作的显示名称',
     disagree_name VARCHAR(12) COMMENT '反对操作的显示名称',
-    created_by    BIGINT       NOT NULL COMMENT '创建者ID',
 
-    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at    DATETIME COMMENT '删除时间，NULL 表示未删除'
+    creator       BIGINT       NOT NULL COMMENT '创建者ID',
+    created_time  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    modifier      BIGINT,
+    updated_time  DATETIME,
+    deleted_time  DATETIME COMMENT '删除时间，NULL 表示未删除'
 
 );
 
@@ -67,26 +90,42 @@ CREATE TABLE t_vote4fun_rank_list
 CREATE TABLE t_vote4fun_rank_member
 (
     id              BIGINT PRIMARY KEY AUTO_INCREMENT,
-    rank_list_id    BIGINT NOT NULL,
-    create_user_id  BIGINT NOT NULL,
-    score_sum       BIGINT COMMENT '票数计数-总',
-    score_calculate BIGINT COMMENT '票数计数-规则计算',
+    rank_list_id    BIGINT,
+    parent_id       BIGINT,
+    score_sum       BIGINT DEFAULT 0 COMMENT   '票数计数-总',
+    score_calculate BIGINT DEFAULT 0 COMMENT '票数计数-规则计算',
     name            VARCHAR(1024) COMMENT '投票项目名称',
     description     VARCHAR(1024),
     cover_url       VARCHAR(255) COMMENT '封面图',
-    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at      DATETIME COMMENT '删除时间，NULL 表示未删除'
 
+    creator         BIGINT NOT NULL COMMENT '创建者ID',
+    created_time    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    modifier        BIGINT,
+    updated_time    DATETIME,
+    deleted_time    DATETIME COMMENT '删除时间，NULL 表示未删除'
 );
 
-CREATE INDEX idx_vote4fun_rank_list_id ON t_vote4fun_rank_member (rank_list_id);
-CREATE INDEX idx_vote4fun_create_user_id ON t_vote4fun_rank_member (create_user_id);
--- 为 score_sum 创建降序索引（默认是升序，但排序方向对性能影响不大）
-CREATE INDEX idx_vote4fun_score_sum ON t_vote4fun_rank_member (score_sum DESC);
+CREATE INDEX idx_vote4fun_rank_member_rank_list_id ON t_vote4fun_rank_member (rank_list_id);
+CREATE INDEX idx_vote4fun_rank_member_parent_id ON t_vote4fun_rank_member (parent_id);
+CREATE INDEX idx_vote4fun_rank_member_create_user_id ON t_vote4fun_rank_member (creator);
 
--- 为 score_calculate 创建降序索引（常用）
-CREATE INDEX idx_vote4fun_score_calculate ON t_vote4fun_rank_member (score_calculate DESC);
+
+# 投票记录
+CREATE TABLE t_vote4fun_vote_record
+(
+    id             BIGINT PRIMARY KEY AUTO_INCREMENT,
+    rank_member_id BIGINT NOT NULL,
+    vote_count     INT    NOT NULL,
+
+    creator        BIGINT NOT NULL COMMENT '创建者ID',
+    created_time   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    modifier       BIGINT,
+    updated_time   DATETIME,
+    deleted_time   DATETIME COMMENT '删除时间，NULL 表示未删除'
+
+);
+CREATE INDEX idx_vote4fun_rank_member_id ON t_vote4fun_vote_record (rank_member_id);
+CREATE INDEX idx_vote4fun_creator ON t_vote4fun_vote_record (creator, created_time);
 
 # 榜单通告
 CREATE TABLE t_vote4fun_announcement
@@ -96,13 +135,16 @@ CREATE TABLE t_vote4fun_announcement
     title        VARCHAR(100) NOT NULL,
     content      TEXT         NOT NULL,
     publisher_id BIGINT       NOT NULL COMMENT '发布者ID（必须是成员）',
-    expires_at   DATETIME COMMENT '过期时间（可选）',
+    expires_time DATETIME COMMENT '过期时间（可选）',
 
-    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at      DATETIME COMMENT '删除时间，NULL 表示未删除'
+    creator      BIGINT       NOT NULL COMMENT '创建者ID',
+    created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    modifier     BIGINT,
+    updated_time DATETIME,
+    deleted_time DATETIME COMMENT '删除时间，NULL 表示未删除'
 
 );
 
+CREATE INDEX idx_vote4fun_announcement_rank_id ON t_vote4fun_announcement (rank_id);
 
 show tables;

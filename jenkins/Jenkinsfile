@@ -1,0 +1,72 @@
+pipeline {
+    agent  any
+
+    environment {
+        DATASOURCE_URL = credentials('warm-stone-datasource-url')
+        FILE_PATH = credentials('warm-stone-file-path')
+        // Username with Password 类型的凭据
+        // 注意：这会创建一个临时文件，文件内容是 "username:password"
+        DATASOURCE = credentials('warm-stone-datasource-password')
+        GITHUB = credentials('https-vote-warm-stone')
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                echo '开始构建项目：编译并打包 JAR'
+                // 先添加执行权限
+                sh 'chmod +x ./gradlew'
+                // 使用 Gradle Wrapper 构建（推荐），或直接使用 gradle 命令
+                // -x test 表示跳过测试（测试在下一阶段单独运行）
+                sh './gradlew build -x test --no-daemon'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                withCredentials([
+                    file(credentialsId: 'warm-stone-jwt-key', variable: 'JWT_KEY'),
+                    file(credentialsId: 'warm-stone-jwt-pub', variable: 'JWT_PUB')
+                ]) {
+                    echo '运行单元测试'
+                    pwd()
+                    sh 'ls -al'
+                    echo 'jwt pub:'
+                    sh "echo $JWT_PUB"
+                    sh """
+                        mkdir -p src/main/resources/keyPair
+                        cp  \${JWT_KEY} src/main/resources/keyPair/app.key
+                        cp  \${JWT_PUB} src/main/resources/keyPair/app.pub
+                    """
+                    sh './gradlew test --no-daemon'
+                }
+            }
+            post {
+                always {
+                    // 收集测试报告
+                    // Gradle 默认生成 XML 报告在 build/test-results/test/
+                    // Jenkins JUnit 插件可解析这些文件
+                    junit 'build/test-results/test/*.xml'
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'https-vote-warm-stone',
+                        usernameVariable: 'GITHUB_CLIENT_ID',
+                        passwordVariable: 'GITHUB_CLIENT_SECRET'
+                    )
+                ]) {
+                    echo '交付应用：运行发布脚本'
+                    // 假设 deliver.sh 是你的部署脚本，需确保它支持 Gradle 项目结构
+                    sh 'chmod +x ./jenkins/scripts/run_container.sh'
+                    sh './jenkins/scripts/run_container.sh '
+               }
+
+            }
+        }
+    }
+}
