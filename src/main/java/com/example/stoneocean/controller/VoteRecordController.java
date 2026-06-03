@@ -1,5 +1,6 @@
 package com.example.stoneocean.controller;
 
+import com.example.stoneocean.Util.Tools;
 import com.example.stoneocean.entity.ApiResponse;
 import com.example.stoneocean.entity.VoteRecord;
 import com.example.stoneocean.entity.dto.VoteRecordSumDTO;
@@ -11,16 +12,21 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @RestController
 @RequestMapping("/voteRecord")
 public class VoteRecordController {
+    private final Tools tool;
     private final IVoteRecordService service;
     private final IRankMemberService rankMemberService;
 
-    public VoteRecordController(IVoteRecordService voteRecordService,
-                                IRankMemberService rankMemberService) {
+    public VoteRecordController(
+            Tools tool,
+            IVoteRecordService voteRecordService,
+            IRankMemberService rankMemberService) {
+        this.tool = tool;
         this.service = voteRecordService;
         this.rankMemberService = rankMemberService;
     }
@@ -32,8 +38,8 @@ public class VoteRecordController {
     }
 
     /*
-    * 不使用事务，依赖更新后总值限制限制投票数
-    * */
+     * 不使用事务，依赖更新后总值限制限制投票数
+     * */
     @PostMapping("/vote")
     @Transactional
     public ApiResponse<Boolean> voteToRankMember(@RequestBody VoteRecord voteRecord, Authentication authentication) {
@@ -42,20 +48,19 @@ public class VoteRecordController {
         if (Math.abs(voteCount) > 1) return ApiResponse.failed("投票值应当小于 1");
 
         // 添加今日投票数据
-        VoteRecord lastRecord = service.selectLastByRankMemberId(voteRecord.getRankMemberId());
         Long userId = (Long) ((Jwt) authentication.getCredentials()).getClaims().get("userId");
+        VoteRecord lastRecord = service.selectLastByRankMemberIdAndCreatorId(voteRecord.getRankMemberId(), userId);
         boolean ret;
         if (lastRecord != null &&
-                lastRecord.getCreatedTime().isAfter(LocalDateTime.now().toLocalDate().atStartOfDay())) {
+                lastRecord.getCreatedTime().isAfter(tool.localTime().toLocalDate().atStartOfDay())) {
             voteRecord.setVoteCount(voteCount + lastRecord.getVoteCount());
             voteRecord.setId(lastRecord.getId());
-            voteRecord.setUpdatedTime(LocalDateTime.now());
+            voteRecord.setUpdatedTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
             voteRecord.setModifier(userId);
 
             if (Math.abs(voteRecord.getVoteCount()) > 1) return ApiResponse.failed("每日投票值应当小于 1");
             ret = service.updateById(voteRecord);
-        }
-        else {
+        } else {
             voteRecord.setCreator(userId);
             ret = service.save(voteRecord);
         }

@@ -32,9 +32,9 @@ jwt:
   public:
     key: classpath:keyPair/app.pub
 
-logging:
-  level:
-    root: INFO
-    org.springframework.web: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.boot.autoconfigure: DEBUG
+#logging:
+#  level:
+#    root: DEBUG
+#    org.springframework.web: DEBUG
+#    org.springframework.security: DEBUG
+#    org.springframework.boot.autoconfigure: DEBUG

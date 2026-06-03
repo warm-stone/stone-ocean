@@ -11,4 +11,5 @@ public interface IVoteRecordService extends IService<VoteRecord> {
     List<VoteRecordSumDTO> getVoteSumRecord(Long rankMemberId);
 
     VoteRecord selectLastByRankMemberId(Long rankMemberId);
+    VoteRecord selectLastByRankMemberIdAndCreatorId(Long rankMemberId, Long creatorId);
 }

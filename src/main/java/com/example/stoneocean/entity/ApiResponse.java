@@ -42,4 +42,19 @@ public class ApiResponse<T> implements Serializable {
         return new ApiResponse<T>(500, message, null);
     }
 
+    public static <T> ApiResponse<T> byFlag(boolean flag, T data) {
+        return ApiResponse.byFlag(flag, data, null);
+    }
+
+    public static <T> ApiResponse<T> byFlag(boolean flag, T data, String failMessage) {
+        if (failMessage == null || failMessage.isEmpty()) {
+            failMessage = "操作失败";
+        }
+        if (flag) {
+            return ApiResponse.success(data);
+        } else {
+            return ApiResponse.failed(failMessage);
+        }
+    }
+
 }

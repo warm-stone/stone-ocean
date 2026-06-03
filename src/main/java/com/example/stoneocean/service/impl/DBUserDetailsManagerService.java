@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsPasswordService;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 
@@ -22,7 +23,10 @@ public class DBUserDetailsManagerService extends ServiceImpl<UserMapper, User>
         implements IUserService, // 数据库操作
         UserDetailsService, UserDetailsPasswordService // 用户认证
 {
-
+    private final PasswordEncoder passwordEncoder;
+    public DBUserDetailsManagerService(PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Override
     public User getByAccount(@NotNull String account) {
@@ -39,7 +43,19 @@ public class DBUserDetailsManagerService extends ServiceImpl<UserMapper, User>
         return baseMapper.selectOne(queryWrapper);
     }
 
+    @Override
+    public boolean save(User user) {
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            user.setPasswordHash(passwordEncoder.encode(user.getPassword()));
+        }
+        return super.save(user);
+    }
 
+    @Override
+    public boolean updateById(User user) {
+        user.setPasswordHash(passwordEncoder.encode(user.getPassword()));
+        return super.updateById(user);
+    }
 
     // ###################################################################
     // 用户认证
@@ -58,6 +74,6 @@ public class DBUserDetailsManagerService extends ServiceImpl<UserMapper, User>
 
     @Override
     public UserDetails updatePassword(UserDetails user, String newPassword) {
-        return null;
+        throw new RuntimeException("未实现");
     }
 }

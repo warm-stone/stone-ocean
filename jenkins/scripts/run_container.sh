@@ -84,7 +84,7 @@ IMAGE_TAG="$VERSION"
 
 echo "正在构建 Docker 镜像: $IMAGE_NAME:$IMAGE_TAG"
 docker build -t "$IMAGE_NAME:$IMAGE_TAG" $BUILD_CONTEXT
-
+docker save -o "${IMAGE_NAME}.tar" "$IMAGE_NAME:$IMAGE_TAG"
 
 # ============ 步骤 6：运行 Docker 容器 ============
 echo "正在启动容器..."

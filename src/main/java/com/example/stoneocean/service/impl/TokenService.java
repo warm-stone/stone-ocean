@@ -16,14 +16,13 @@ import java.util.stream.Collectors;
 public class TokenService implements ITokenService {
 
     private final JwtEncoder encoder;
-
+    private final long EXPIRED_DURATION = 252000L;
     public TokenService(JwtEncoder encoder) {
         this.encoder = encoder;
     }
     @Override
     public String token(Authentication authentication) {
         Instant now = Instant.now();
-        long expiry = 36000L;
         // @formatter:off
         String scope = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
@@ -31,7 +30,7 @@ public class TokenService implements ITokenService {
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("self")
                 .issuedAt(now)
-                .expiresAt(now.plusSeconds(expiry))
+                .expiresAt(now.plusSeconds(EXPIRED_DURATION))
                 .subject(authentication.getName())
                 .claim("scope", scope)
                 .claim("user", authentication.getPrincipal())
@@ -40,30 +39,15 @@ public class TokenService implements ITokenService {
         return this.encoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
     }
 
-    @Override
-    public String token(String username, String userId) {
-        Instant now = Instant.now();
-        long expiry = 36000L;
-        // @formatter:off
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("self")
-                .issuedAt(now)
-                .expiresAt(now.plusSeconds(expiry))
-                .subject(username)
-                .build();
-        // @formatter:on
-        return this.encoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
-    }
 
     @Override
     public String token(User user) {
         Instant now = Instant.now();
-        long expiry = 36000L;
         // @formatter:off
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("self")
                 .issuedAt(now)
-                .expiresAt(now.plusSeconds(expiry))
+                .expiresAt(now.plusSeconds(EXPIRED_DURATION))
                 .subject(user.getAccount())
                 .claim("userId", user.getId())
                 .build();

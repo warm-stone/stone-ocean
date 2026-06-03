@@ -12,7 +12,6 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Objects;
 import java.util.UUID;
 
 
@@ -31,12 +30,12 @@ public class FileManagerService implements IFileManagerService {
     public String uploadFile(MultipartFile file) throws IOException {
 
         // 检查文件是否为空
-        if (file.isEmpty() || Objects.requireNonNull(file.getOriginalFilename()).length() > 100) {
+        if (file.isEmpty()) {
             throw new IllegalArgumentException("文件为空");
         }
         // 生成唯一文件名（避免覆盖）
         // 保存文件到本地
-        String newFileName = UUID.randomUUID() + "-" + file.getOriginalFilename();
+        String newFileName = UUID.randomUUID().toString();
         Path path = Paths.get(FILE_DIR, newFileName);
         file.transferTo(path);  // 核心方法：将上传文件写入目标路径
 

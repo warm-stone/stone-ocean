@@ -26,18 +26,27 @@ public class RankListController {
     }
 
     @GetMapping("/page")
-    public ApiResponse<Page<RankList>> getRankList(@RequestParam(name = "page", defaultValue = "0") int page,
+    public ApiResponse<Page<RankList>> getRankList(@RequestParam(name = "page", defaultValue = "1") int page,
                                                    @RequestParam(name = "size", defaultValue = "10") int size
     ) {
 
         return ApiResponse.success(service.getRankListByPage(page, size));
     }
 
+    @GetMapping("/member/{id}")
+    public ApiResponse<RankList> getRankListById(@PathVariable("id") Long id) {
+        if (id == null) return ApiResponse.failed("错误的参数");
+        RankList rankList = service.getById(id);
+        return ApiResponse.success(rankList);
+    }
+
     @PostMapping("/add")
-    public boolean addRankList(@RequestBody RankList rankList, Authentication authentication) {
+    public ApiResponse<Boolean> addRankList(@RequestBody RankList rankList, Authentication authentication) {
 
         Long userId = (Long) ((Jwt)authentication.getCredentials()).getClaims().get("userId");
         rankList.setCreator(userId);
-        return service.save(rankList);
+        boolean ret = service.save(rankList);
+        return ApiResponse.success(ret);
     }
+
 }

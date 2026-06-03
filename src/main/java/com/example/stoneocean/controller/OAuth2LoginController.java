@@ -4,11 +4,12 @@ import com.example.stoneocean.Util.Tools;
 import com.example.stoneocean.entity.ApiResponse;
 import com.example.stoneocean.entity.ThirdPartyAccount;
 import com.example.stoneocean.entity.User;
+import com.example.stoneocean.entity.dto.AuthorizationDTO;
+import com.example.stoneocean.entity.dto.OAuth2ClientInfo;
 import com.example.stoneocean.service.IThirdPartyAccountService;
 import com.example.stoneocean.service.ITokenService;
 import com.example.stoneocean.service.IUserService;
 import com.fasterxml.jackson.databind.JsonNode;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotNull;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
@@ -50,19 +51,18 @@ public class OAuth2LoginController {
     }
 
     @GetMapping("/{registrationId}/code")
-    public ApiResponse<Map<String, Object>> getCode(@PathVariable String registrationId) {
+    public ApiResponse<OAuth2ClientInfo> getCode(@PathVariable String registrationId) {
         ClientRegistration registration = getRegistration(registrationId);
-        Map<String, Object> ret = new HashMap<>();
-        ret.put("clientId", registration.getClientId());
-        ret.put("scopes", registration.getScopes());
-        ret.put("authorizationUri", registration.getProviderDetails().getAuthorizationUri());
-        return ApiResponse.success(ret);
+        OAuth2ClientInfo clientInfo = new OAuth2ClientInfo();
+        clientInfo.setClientId(registration.getClientId());
+        clientInfo.setScopes(registration.getScopes());
+        clientInfo.setAuthorizationUri(registration.getProviderDetails().getAuthorizationUri());
+        return ApiResponse.success(clientInfo);
     }
 
     @PostMapping("/{registrationId}/register")
     @Transactional
-    public ApiResponse<Map<String, Object>> getToken(@PathVariable String registrationId, @RequestBody String code
-    ,HttpServletRequest request) {
+    public ApiResponse<AuthorizationDTO> getToken(@PathVariable String registrationId, @RequestBody String code) {
         Assert.notNull(code, "code 不能为空");
         ClientRegistration registration = getRegistration(registrationId);
         ClientRegistration.ProviderDetails providerDetails = registration.getProviderDetails();
@@ -126,9 +126,7 @@ public class OAuth2LoginController {
         // token 颁发
         String token = this.tokenService.token(user);
 //        String token = this.tokenService.token(user.getAccount());
-        Map<String, Object> ret = new HashMap<>();
-        ret.put("token", token);
-        return ApiResponse.success(ret);
+        return ApiResponse.success(new AuthorizationDTO(token, user));
     }
 
     private ClientRegistration getRegistration(@NotNull String registrationId) {

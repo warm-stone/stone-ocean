@@ -39,3 +39,13 @@ out/
 ### secret ###
 .env
 ./src/main/resources/keyPair
+
+### vibe coding ###
+.trae
+.omo
+
+
+### project ###
+data
+lib
+app*

@@ -17,9 +17,13 @@
 package com.example.stoneocean.controller;
 
 import com.example.stoneocean.entity.ApiResponse;
+import com.example.stoneocean.entity.User;
+import com.example.stoneocean.entity.dto.AuthorizationDTO;
 import com.example.stoneocean.service.ITokenService;
+import com.example.stoneocean.service.IUserService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
@@ -39,14 +43,24 @@ import java.util.stream.Collectors;
 @RequestMapping("/token")
 public class TokenController {
     private final ITokenService tokenService;
+    private final IUserService userService;
 
-    public TokenController(ITokenService tokenService) {
+    public TokenController(ITokenService tokenService, IUserService userService) {
         this.tokenService = tokenService;
+        this.userService = userService;
     }
 
     @PostMapping("/token")
     public ApiResponse<String> token(Authentication authentication) {
-        return ApiResponse.success(tokenService.token(authentication));
+        Long userId = -1L;
+        if (authentication.getPrincipal() instanceof User) {
+            userId = ((User) authentication.getPrincipal()).getId();
+        }
+        else {
+            userId = (Long) ((Jwt)authentication.getPrincipal()).getClaims().get("userId");
+        }
+        User user = userService.getById(userId);
+        return ApiResponse.success(tokenService.token(user));
     }
 
 

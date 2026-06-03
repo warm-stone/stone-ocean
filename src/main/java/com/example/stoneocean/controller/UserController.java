@@ -2,14 +2,16 @@ package com.example.stoneocean.controller;
 
 import com.example.stoneocean.entity.ApiResponse;
 import com.example.stoneocean.entity.User;
+import com.example.stoneocean.entity.dto.AuthorizationDTO;
+import com.example.stoneocean.service.ITokenService;
 import com.example.stoneocean.service.IUserService;
 import jakarta.validation.Valid;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
-import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Objects;
 
 /**
  * <p>
@@ -23,30 +25,105 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/user")
 public class UserController {
     private final IUserService userService;
+    private final ITokenService tokenService;
 
-    public UserController(IUserService userService) {
+    public UserController(IUserService userService,
+                          ITokenService tokenService) {
         this.userService = userService;
+        this.tokenService = tokenService;
     }
 
     private boolean checkUser(User user) {
         if (user == null) return false;
-        if (user.getUsername() == null
-                || user.getPassword() == null
-                || user.getNickname() == null) return false;
-        return true;
+        return user.getUsername() != null
+                && user.getPassword() != null
+                && user.getNickname() != null;
+    }
+
+
+    private static Long getUserId(Authentication authentication) {
+        Long userId;
+        if (authentication.getPrincipal() instanceof User) {
+            userId = ((User) authentication.getPrincipal()).getId();
+        }
+        else {
+            userId = (Long) ((Jwt) authentication.getPrincipal()).getClaims().get("userId");
+        }
+        Assert.isTrue (userId != -1L, "用户信息获取失败");
+        return userId;
     }
 
     @PostMapping("/add")
-    public void add(@Valid @RequestBody User user) {
+    public ApiResponse<AuthorizationDTO> add(@Valid @RequestBody User user) {
+        User byAccount = userService.getByAccount(user.getAccount());
+        if (byAccount != null) {
+            return ApiResponse.failed("账户已被注册");
+        }
+        User byNickname = userService.getByNickname(user.getNickname());
+        if (byNickname != null) {
+            return ApiResponse.failed("昵称已被使用");
+        }
+        if (user.getEmail() != null && user.getEmail().isEmpty()) {
+            user.setEmail(null);
+        }
+        boolean save = userService.save(user);
+        if (!save) {
+            return ApiResponse.failed("注册失败");
+        }
+        // 防止id未自动填充，手动填充 id
+        user = userService.getByAccount(user.getAccount());
+        String token = this.tokenService.token(user);
+        return ApiResponse.success(new AuthorizationDTO(token, user));
+    }
+
+    @PostMapping("/login")
+    public ApiResponse<AuthorizationDTO> login(Authentication authentication) {
+        Long userId = getUserId(authentication);
+        User user = userService.getById(userId);
+        String token = this.tokenService.token(user);
+        return ApiResponse.success(new AuthorizationDTO(token, user));
 
     }
 
+    @PostMapping("/selfInfo")
+    public ApiResponse<User> getSelfInfo(Authentication authentication) {
+        Long userId = getUserId(authentication);
+        User user = userService.getById(userId);
+        user.setPasswordHash(""); // 保护性置空
+        return ApiResponse.success(user);
+    }
 
-    @GetMapping("/oauth2Login/{registrationId}")
-    public ApiResponse oauth2Login(@RegisteredOAuth2AuthorizedClient OAuth2AuthorizedClient authorizedClient,
-                                   @AuthenticationPrincipal OAuth2User oauth2User,
-                                   @PathVariable("registrationId") String registrationId) {
-        Assert.isTrue(registrationId.equals("github"), "预期外的 registrationId ：【%s】".formatted(registrationId));
-        return ApiResponse.success(oauth2User);
+
+    @PostMapping("/modify")
+    public ApiResponse<AuthorizationDTO> modify(Authentication authentication, @Valid @RequestBody User user) {
+        Long userId = getUserId(authentication);
+        if (user.getId() == null) user.setId(userId);
+        Assert.isTrue(Objects.equals(userId, user.getId()), "鉴权错误");
+        User byAccount = userService.getByAccount(user.getAccount());
+        if (byAccount != null && !Objects.equals(byAccount.getId(), user.getId())) {
+            return ApiResponse.failed("账户已被注册");
+        }
+        User byNickname = userService.getByNickname(user.getNickname());
+        if (byNickname != null && !Objects.equals(byNickname.getId(), user.getId())) {
+            return ApiResponse.failed("昵称已被使用");
+        }
+        if (user.getEmail() != null && user.getEmail().isEmpty()) {
+            user.setEmail(null);
+        }
+        boolean flag = userService.updateById(user);
+        if (!flag) {
+            return ApiResponse.failed("修改失败");
+        }
+
+        String token = this.tokenService.token(user);
+        return ApiResponse.success(new AuthorizationDTO(token, user));
+    }
+
+
+    @PostMapping("/member/{userId}")
+    public ApiResponse<User> getById(@PathVariable Long userId) {
+        User user = userService.getById(userId);
+        user.setPasswordHash(""); // 保护性置空
+        return ApiResponse.success(user);
     }
 }

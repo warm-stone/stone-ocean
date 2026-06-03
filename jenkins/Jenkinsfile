@@ -4,10 +4,11 @@ pipeline {
     environment {
         DATASOURCE_URL = credentials('warm-stone-datasource-url')
         FILE_PATH = credentials('warm-stone-file-path')
-        // Username with Password 类型的凭据
-        // 注意：这会创建一个临时文件，文件内容是 "username:password"
         DATASOURCE = credentials('warm-stone-datasource-password')
         GITHUB = credentials('https-vote-warm-stone')
+        ALI_HOST_IP = credentials('ali-host-ip')
+        IMAGE_NAME = 'stone-ocean'
+        VERSION = '0.0.1-SNAPSHOT'
     }
 
     stages {
@@ -61,12 +62,35 @@ pipeline {
                     )
                 ]) {
                     echo '交付应用：运行发布脚本'
-                    // 假设 deliver.sh 是你的部署脚本，需确保它支持 Gradle 项目结构
                     sh 'chmod +x ./jenkins/scripts/run_container.sh'
                     sh './jenkins/scripts/run_container.sh '
                }
+               withCredentials([sshUserPrivateKey(credentialsId: 'ali-appuser', keyFileVariable: 'SSH_KEY', usernameVariable: 'USERNAME')]) {
+                   // 打包镜像
+                   sh "docker save -o ${IMAGE_NAME}.tar ${IMAGE_NAME}"
+                   // SCP 传到目标服务器
+                   sshPut(
+                       remote: [ name: 'ali-server', host: ALI_HOST_IP, user: USERNAME,  identityFile: SSH_KEY, allowAnyHosts: true],
+                       from: "${IMAGE_NAME}.tar",
+                       into: "./stone-ocean/"
+                   )
+                   // 远程加载并启动
+                   sshCommand(
+                       remote: [ name: 'ali-server', host: ALI_HOST_IP, user: USERNAME,  identityFile: SSH_KEY, allowAnyHosts: true],
+                       command: """
+                           cd ./stone-ocean/
+                           echo "输出测试"
+                           echo $VERSION
+                           docker load -i ${IMAGE_NAME}.tar
+                           docker stop $IMAGE_NAME || true
+                           docker rm $IMAGE_NAME || true
+                           docker run -d --name "$IMAGE_NAME" -p 8101:8101 -v $FILE_PATH:$FILE_PATH  --restart unless-stopped $IMAGE_NAME:$VERSION
+                       """
+                   )
+               }
 
             }
+
         }
     }
 }

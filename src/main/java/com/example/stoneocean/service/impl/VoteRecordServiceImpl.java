@@ -20,4 +20,9 @@ public class VoteRecordServiceImpl extends ServiceImpl<VoteRecordMapper, VoteRec
     public VoteRecord selectLastByRankMemberId(Long rankMemberId) {
         return baseMapper.selectLastByRankMemberId(rankMemberId);
     }
+
+    public VoteRecord selectLastByRankMemberIdAndCreatorId(Long rankMemberId, Long creatorId) {
+
+        return baseMapper.selectLastByRankMemberIdAndCreatorId(rankMemberId, creatorId);
+    }
 }
