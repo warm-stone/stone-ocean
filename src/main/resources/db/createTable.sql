@@ -148,27 +148,6 @@ CREATE TABLE t_vote4fun_announcement
 CREATE INDEX idx_vote4fun_announcement_rank_id ON t_vote4fun_announcement (rank_id);
 
 
-############################################
-# 投票
-# 基础游戏项目表
-CREATE TABLE t_fishing_game
-(
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(24),
-    prompt VARCHAR(64) COMMENT '游戏提示',
-    type VARCHAR(64) NOT NULL,
-    content TEXT COMMENT '游戏内容',
-    answer VARCHAR(100) COMMENT '游戏答案',
-
-    creator      BIGINT       NOT NULL COMMENT '创建者ID',
-    created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    modifier     BIGINT,
-    updated_time DATETIME,
-    deleted_time DATETIME COMMENT '删除时间，NULL 表示未删除'
-);
-CREATE INDEX idx_fishing_game_name ON t_fishing_game (name);
-
-# 房间好像没有持久化的必要
 
 
 show tables;
