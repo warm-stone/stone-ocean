@@ -50,8 +50,7 @@ public class SecurityConfig {
                                 "/voteRecord/statistic/**",
                                 "/game/page",
                                 "/game/member/**",
-                                "/file/load/**",
-                                "/file/upload"
+                                "/file/load/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
