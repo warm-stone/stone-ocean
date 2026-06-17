@@ -68,15 +68,6 @@ public class UserController {
         return ApiResponse.success(new AuthorizationDTO(token, user));
     }
 
-    @PostMapping("/login")
-    public ApiResponse<AuthorizationDTO> login(Authentication authentication) {
-        Long userId = getUserId(authentication);
-        User user = userService.getById(userId);
-        String token = this.tokenService.token(user);
-        return ApiResponse.success(new AuthorizationDTO(token, user));
-
-    }
-
     @PostMapping("/selfInfo")
     public ApiResponse<User> getSelfInfo(Authentication authentication) {
         Long userId = getUserId(authentication);
