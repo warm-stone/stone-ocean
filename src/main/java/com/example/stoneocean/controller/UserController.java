@@ -33,14 +33,6 @@ public class UserController {
         this.tokenService = tokenService;
     }
 
-    private boolean checkUser(User user) {
-        if (user == null) return false;
-        return user.getUsername() != null
-                && user.getPassword() != null
-                && user.getNickname() != null;
-    }
-
-
     private static Long getUserId(Authentication authentication) {
         Long userId;
         if (authentication.getPrincipal() instanceof User) {
