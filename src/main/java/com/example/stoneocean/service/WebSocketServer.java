@@ -4,6 +4,8 @@ import com.example.stoneocean.config.SpringContextHolder;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +19,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
 @ServerEndpoint("/ws/{userId}")
 @Component
 public class WebSocketServer {
+
+    private static final Logger log = LoggerFactory.getLogger(WebSocketServer.class);
 
     // 静态变量，记录当前在线连接数（线程安全）
     private static int onlineCount = 0;
@@ -66,13 +70,13 @@ public class WebSocketServer {
         webSocketSet.add(this);
         // 在线人数 +1
         addOnlineCount();
-        System.out.println("用户 " + userId + " 连接成功，当前在线人数：" + getOnlineCount());
+        log.info("用户 {} 连接成功，当前在线人数：{}", userId, getOnlineCount());
 
         try {
             // 向客户端发送连接成功消息
             sendMessage("连接成功！目前在线人数：" + getOnlineCount());
         } catch (IOException e) {
-            System.out.println("发送消息失败：" + e.getMessage());
+            log.error("发送消息失败", e);
         }
     }
 
@@ -85,7 +89,7 @@ public class WebSocketServer {
         webSocketSet.remove(this);
         // 在线人数 -1
         subOnlineCount();
-        System.out.println("用户 " + userId + " 断开连接，当前在线人数：" + getOnlineCount());
+        log.info("用户 {} 断开连接，当前在线人数：{}", userId, getOnlineCount());
     }
 
     /**
@@ -96,7 +100,7 @@ public class WebSocketServer {
      */
     @OnMessage
     public void onMessage(String message, Session session) {
-        System.out.println("收到用户 " + userId + " 的消息：" + message);
+        log.info("收到用户 {} 的消息：{}", userId, message);
 
         // 示例：将消息广播给所有在线客户端
         for (WebSocketServer webSocket : webSocketSet) {
@@ -104,7 +108,7 @@ public class WebSocketServer {
                 // 转发消息（格式：[发送者ID]：消息内容）
                 webSocket.sendMessage("[" + userId + "]：" + message);
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("广播消息发送失败", e);
             }
         }
     }
@@ -114,8 +118,7 @@ public class WebSocketServer {
      */
     @OnError
     public void onError(Session session, Throwable error) {
-        System.out.println("发生错误：" + error.getMessage());
-        error.printStackTrace();
+        log.error("WebSocket错误", error);
     }
 
     /**
@@ -134,7 +137,7 @@ public class WebSocketServer {
             try {
                 webSocket.sendMessage(message);
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("群发消息发送失败", e);
             }
         }
     }
@@ -148,7 +151,7 @@ public class WebSocketServer {
                 try {
                     webSocket.sendMessage("[系统通知]：" + message);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    log.error("点对点消息发送失败", e);
                 }
                 break;
             }
