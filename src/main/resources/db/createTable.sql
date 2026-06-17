@@ -126,6 +126,7 @@ CREATE TABLE t_vote4fun_vote_record
 );
 CREATE INDEX idx_vote4fun_rank_member_id ON t_vote4fun_vote_record (rank_member_id);
 CREATE INDEX idx_vote4fun_creator ON t_vote4fun_vote_record (creator, created_time);
+CREATE INDEX idx_vote4fun_vote_record_member_creator_time ON t_vote4fun_vote_record (rank_member_id, creator, created_time);
 
 # 榜单通告
 CREATE TABLE t_vote4fun_announcement
