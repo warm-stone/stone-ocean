@@ -32,14 +32,14 @@ public class DBUserDetailsManagerService extends ServiceImpl<UserMapper, User>
     public User getByAccount(@NotNull String account) {
 
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("account", account);
+        queryWrapper.eq("account", account).isNull("deleted_time");
         return baseMapper.selectOne(queryWrapper);
     }
 
     @Override
     public User getByNickname(@NotNull String nickname) {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("nickname", nickname);
+        queryWrapper.eq("nickname", nickname).isNull("deleted_time");
         return baseMapper.selectOne(queryWrapper);
     }
 
@@ -65,7 +65,7 @@ public class DBUserDetailsManagerService extends ServiceImpl<UserMapper, User>
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("account", username);
+        queryWrapper.eq("account", username).isNull("deleted_time");
         User user = baseMapper.selectOne(queryWrapper);
         if (user == null || user.getPassword() == null || user.getPassword().isEmpty()) {
             throw new UsernameNotFoundException("user '" + username + "' not found");
