@@ -53,7 +53,9 @@ public class DBUserDetailsManagerService extends ServiceImpl<UserMapper, User>
 
     @Override
     public boolean updateById(User user) {
-        user.setPasswordHash(passwordEncoder.encode(user.getPassword()));
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            user.setPasswordHash(passwordEncoder.encode(user.getPassword()));
+        }
         return super.updateById(user);
     }
 
