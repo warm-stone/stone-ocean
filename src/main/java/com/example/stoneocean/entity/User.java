@@ -51,7 +51,6 @@ public class User implements UserDetails {
     /**
      * 密码哈希
      */
-    @NotBlank
     @ApiModelProperty("密码哈希")
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String passwordHash;
