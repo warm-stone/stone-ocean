@@ -49,7 +49,7 @@ public class VoteRecordController {
 
         // 添加今日投票数据
         Long userId = (Long) ((Jwt) authentication.getPrincipal()).getClaims().get("userId");
-        VoteRecord lastRecord = service.selectLastByRankMemberIdAndCreatorId(voteRecord.getRankMemberId(), userId);
+        VoteRecord lastRecord = service.selectLastByRankMemberIdAndCreatorIdForUpdate(voteRecord.getRankMemberId(), userId);
         boolean ret;
         if (lastRecord != null &&
                 lastRecord.getCreatedTime().isAfter(tool.localTime().toLocalDate().atStartOfDay())) {
