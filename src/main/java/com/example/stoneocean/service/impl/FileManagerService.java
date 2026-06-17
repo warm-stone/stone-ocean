@@ -45,11 +45,18 @@ public class FileManagerService implements IFileManagerService {
     public Resource loadFile(String fileName) throws MalformedURLException {
 
         // 创建文件资源
-        Path filePath = Paths.get(FILE_DIR, fileName);
+        Path filePath = Paths.get(FILE_DIR, fileName).normalize();
+        if (!filePath.startsWith(FILE_DIR)) {
+            throw new IllegalArgumentException("非法文件路径");
+        }
         return new UrlResource(filePath.toUri());
     }
 
     public Path getFilePath(String fileName) {
-        return Paths.get(FILE_DIR, fileName);
+        Path filePath = Paths.get(FILE_DIR, fileName).normalize();
+        if (!filePath.startsWith(FILE_DIR)) {
+            throw new IllegalArgumentException("非法文件路径");
+        }
+        return filePath;
     }
 }
