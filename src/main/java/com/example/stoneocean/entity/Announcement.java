@@ -53,14 +53,7 @@ public class Announcement implements Serializable {
     private LocalDateTime createdTime;
     private Long modifier;
     private LocalDateTime updatedTime;
-    private LocalDateTime deletedTime;
-
-
-
-    /**
-     * 删除时间，NULL 表示未删除
-     */
     @ApiModelProperty("删除时间，NULL 表示未删除")
-    private LocalDateTime deletedAt;
+    private LocalDateTime deletedTime;
 
 }
