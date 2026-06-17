@@ -43,6 +43,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/oauth2Login/**",
                                 "/user/add",
+                                "/user/login",
+                                "/token/token",
                                 "/rankList/page",
                                 "/rankList/member/**",
                                 "/rankMember/member/**",
