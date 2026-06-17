@@ -1,11 +1,14 @@
 package com.example.stoneocean.service;
 
+import com.example.stoneocean.config.SpringContextHolder;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
@@ -34,6 +37,31 @@ public class WebSocketServer {
     public void onOpen(Session session, @PathParam("userId") String userId) {
         this.session = session;
         this.userId = userId;
+
+        // JWT 认证校验
+        String token = session.getRequestParameterMap().getOrDefault("token", List.of()).stream().findFirst().orElse(null);
+        if (token == null || token.isEmpty()) {
+            try {
+                session.close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "缺少认证token"));
+            } catch (IOException ignored) {}
+            return;
+        }
+
+        try {
+            JwtDecoder decoder = SpringContextHolder.getBean(JwtDecoder.class);
+            var jwt = decoder.decode(token);
+            Long jwtUserId = (Long) jwt.getClaims().get("userId");
+            if (jwtUserId == null || !jwtUserId.toString().equals(userId)) {
+                session.close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "用户身份不匹配"));
+                return;
+            }
+        } catch (Exception e) {
+            try {
+                session.close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "token验证失败"));
+            } catch (IOException ignored) {}
+            return;
+        }
+
         // 将当前连接加入集合
         webSocketSet.add(this);
         // 在线人数 +1
@@ -42,7 +70,7 @@ public class WebSocketServer {
 
         try {
             // 向客户端发送连接成功消息
-            sendMessage("连接成功！当前在线人数：" + getOnlineCount());
+            sendMessage("连接成功！目前在线人数：" + getOnlineCount());
         } catch (IOException e) {
             System.out.println("发送消息失败：" + e.getMessage());
         }
