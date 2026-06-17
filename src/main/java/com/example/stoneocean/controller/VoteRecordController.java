@@ -48,7 +48,7 @@ public class VoteRecordController {
         if (Math.abs(voteCount) > 1) return ApiResponse.failed("投票值应当小于 1");
 
         // 添加今日投票数据
-        Long userId = (Long) ((Jwt) authentication.getCredentials()).getClaims().get("userId");
+        Long userId = (Long) ((Jwt) authentication.getPrincipal()).getClaims().get("userId");
         VoteRecord lastRecord = service.selectLastByRankMemberIdAndCreatorId(voteRecord.getRankMemberId(), userId);
         boolean ret;
         if (lastRecord != null &&

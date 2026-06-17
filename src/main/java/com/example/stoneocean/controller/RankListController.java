@@ -43,7 +43,7 @@ public class RankListController {
     @PostMapping("/add")
     public ApiResponse<Boolean> addRankList(@RequestBody RankList rankList, Authentication authentication) {
 
-        Long userId = (Long) ((Jwt)authentication.getCredentials()).getClaims().get("userId");
+        Long userId = (Long) ((Jwt) authentication.getPrincipal()).getClaims().get("userId");
         rankList.setCreator(userId);
         boolean ret = service.save(rankList);
         return ApiResponse.success(ret);

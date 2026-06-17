@@ -36,7 +36,7 @@ public class RankMemberController {
                 "初始票数应该为空");
         Assert.isTrue(rankMember.getParentId() != null || rankMember.getRankListId() != null,
                 "父级不应为空");
-        Long userId = (Long) ((Jwt)authentication.getCredentials()).getClaims().get("userId");
+        Long userId = (Long) ((Jwt) authentication.getPrincipal()).getClaims().get("userId");
         rankMember.setCreator(userId);
         boolean save = service.save(rankMember);
         return ApiResponse.success(save);
