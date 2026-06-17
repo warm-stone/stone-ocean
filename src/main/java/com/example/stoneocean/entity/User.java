@@ -1,9 +1,11 @@
 package com.example.stoneocean.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.example.stoneocean.Util.NotContains;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -55,6 +57,17 @@ public class User implements UserDetails {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String passwordHash;
 
+    /**
+     * 原始密码（仅用于接收前端输入，不持久化）
+     */
+    @TableField(exist = false)
+    @JsonIgnore
+    private String password;
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
     private String email;
 
     private String phone;
@@ -92,7 +105,7 @@ public class User implements UserDetails {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Override
     public String getPassword() {
-        return this.getPasswordHash();
+        return this.password != null ? this.password : this.getPasswordHash();
     }
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
