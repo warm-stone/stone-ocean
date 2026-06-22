@@ -121,8 +121,10 @@ CREATE TABLE t_vote4fun_vote_record
     created_time   DATETIME DEFAULT CURRENT_TIMESTAMP,
     modifier       BIGINT,
     updated_time   DATETIME,
-    deleted_time   DATETIME COMMENT '删除时间，NULL 表示未删除'
-
+    deleted_time   DATETIME COMMENT '删除时间，NULL 表示未删除',
+    -- 投票日期：由 created_time 派生，配合下面的唯一约束防止并发首次投票时插入多条当日记录
+    vote_date      DATE GENERATED ALWAYS AS (DATE(created_time)) STORED COMMENT '投票日期(派生自created_time)，用于唯一约束防并发重复投票',
+    UNIQUE KEY uk_vote4fun_vote_record_member_creator_date (rank_member_id, creator, vote_date)
 );
 CREATE INDEX idx_vote4fun_rank_member_id ON t_vote4fun_vote_record (rank_member_id);
 CREATE INDEX idx_vote4fun_creator ON t_vote4fun_vote_record (creator, created_time);
