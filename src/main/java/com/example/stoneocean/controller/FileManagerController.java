@@ -54,14 +54,17 @@ public class FileManagerController {
             // 创建文件资源
             Resource resource = service.loadFile(fileName);
 
-            // （如果无法识别类型，浏览器可能仍会下载，需确保文件是浏览器支持的格式）
+            // 探测内容类型（注意：Files.probeContentType 按文件内容探测，可被伪造）
             String contentType = Files.probeContentType(service.getFilePath(fileName));
             if (contentType == null) {
-                // 无法识别类型时，默认使用二进制流（可能导致下载，建议针对具体类型优化）
                 contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
             }
+            // 安全防护：仅对 image/* 类型使用 inline 内联渲染；
+            // text/html、application/javascript 等非图片类型一律用 attachment 强制下载，
+            // 防止上传的 HTML/JS 在应用合法域名下被浏览器内联渲染执行（存储型 XSS/钓鱼）
+            String dispositionType = contentType.startsWith("image/") ? "inline" : "attachment";
             String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8);
-            String contentDisposition = "inline; filename*=UTF-8''" + encodedFileName;
+            String contentDisposition = dispositionType + "; filename*=UTF-8''" + encodedFileName;
             // 检查资源是否存在
             if (resource.exists()) {
                 return ResponseEntity.ok()
