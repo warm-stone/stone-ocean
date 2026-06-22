@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.HashMap;
@@ -34,6 +35,9 @@ class UserControllerTest {
 
     @Mock
     private ITokenService tokenService;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @Mock
     private Authentication authentication;
@@ -229,7 +233,6 @@ class UserControllerTest {
             User modifyUser = User.builder()
                     .id(1L)
                     .account("updateduser")
-                    .passwordHash("newhash")
                     .nickname("更新昵称")
                     .build();
 
@@ -242,6 +245,7 @@ class UserControllerTest {
             when(userService.getByAccount("updateduser")).thenReturn(null);
             when(userService.getByNickname("更新昵称")).thenReturn(null);
             when(userService.updateById(modifyUser)).thenReturn(true);
+            when(userService.getById(1L)).thenReturn(modifyUser);
             when(tokenService.token(modifyUser)).thenReturn("new-token");
 
             // Act
@@ -355,7 +359,6 @@ class UserControllerTest {
             User modifyUser = User.builder()
                     .id(1L)
                     .account("updateduser")
-                    .passwordHash("newhash")
                     .nickname("更新昵称")
                     .build();
 
@@ -384,7 +387,6 @@ class UserControllerTest {
             // Arrange
             User modifyUser = User.builder()
                     .account("updateduser")
-                    .passwordHash("newhash")
                     .nickname("更新昵称")
                     .build(); // id is null
 
@@ -414,7 +416,6 @@ class UserControllerTest {
             User modifyUser = User.builder()
                     .id(1L)
                     .account("updateduser")
-                    .passwordHash("newhash")
                     .nickname("更新昵称")
                     .email("")
                     .build();
@@ -445,7 +446,6 @@ class UserControllerTest {
             User modifyUser = User.builder()
                     .id(1L)
                     .account("testuser")
-                    .passwordHash("newhash")
                     .nickname("更新昵称")
                     .build();
 
@@ -476,7 +476,6 @@ class UserControllerTest {
             User modifyUser = User.builder()
                     .id(1L)
                     .account("updateduser")
-                    .passwordHash("newhash")
                     .nickname("测试用户")
                     .build();
 

@@ -50,6 +50,7 @@ public class TokenService implements ITokenService {
                 .expiresAt(now.plusSeconds(EXPIRED_DURATION))
                 .subject(user.getAccount())
                 .claim("userId", user.getId())
+                .claim("tokenVersion", user.getTokenVersion() == null ? 0 : user.getTokenVersion())
                 .build();
         // @formatter:on
         return this.encoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();

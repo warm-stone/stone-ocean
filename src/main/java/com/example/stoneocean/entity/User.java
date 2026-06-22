@@ -72,6 +72,18 @@ public class User implements UserDetails {
         this.password = password;
     }
 
+    /**
+     * 原密码（仅用于接收前端输入，修改密码时校验，不持久化）
+     */
+    @TableField(exist = false)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String oldPassword;
+
+    /**
+     * Token 版号，用于服务端撤销令牌（改密码/登出时 +1 使旧令牌失效）
+     */
+    private Integer tokenVersion;
+
     private String email;
 
     private String phone;
