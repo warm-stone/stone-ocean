@@ -16,7 +16,8 @@ CREATE TABLE t_user
     created_time  DATETIME                    DEFAULT CURRENT_TIMESTAMP,
     updated_time  DATETIME                    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_time  DATETIME COMMENT '删除时间，NULL 表示未删除',
-    token_version INT DEFAULT 0 COMMENT 'Token版号，用于令牌撤销'
+    token_version INT DEFAULT 0 COMMENT 'Token版号，用于令牌撤销',
+    role          VARCHAR(32) DEFAULT 'USER' COMMENT '角色，默认 USER'
 );
 
 # 三方账号

@@ -16,6 +16,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
@@ -84,6 +85,11 @@ public class User implements UserDetails {
      */
     private Integer tokenVersion;
 
+    /**
+     * 角色，默认 USER
+     */
+    private String role;
+
     private String email;
 
     private String phone;
@@ -115,7 +121,7 @@ public class User implements UserDetails {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        return List.of(new SimpleGrantedAuthority("ROLE_" + (role == null ? "USER" : role).toUpperCase()));
     }
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
