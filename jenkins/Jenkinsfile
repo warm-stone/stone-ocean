@@ -64,6 +64,20 @@ pipeline {
                     echo '交付应用：运行发布脚本'
                     sh 'chmod +x ./jenkins/scripts/run_container.sh'
                     sh './jenkins/scripts/run_container.sh '
+                    // 生成运行时环境变量文件（含密钥），仅用于远程容器运行时注入；用完即删
+                    // 使用单引号三引串：Groovy 不插值，由 shell 展开 $VAR；set +x 防止命令回显泄漏密钥
+                    sh '''
+                        set +x
+                        umask 077
+                        cat > app.env <<EOF
+DATASOURCE_URL=$DATASOURCE_URL
+DATASOURCE_USR=$DATASOURCE_USR
+DATASOURCE_PSW=$DATASOURCE_PSW
+GITHUB_CLIENT_ID=$GITHUB_CLIENT_ID
+GITHUB_CLIENT_SECRET=$GITHUB_CLIENT_SECRET
+FILE_PATH=$FILE_PATH
+EOF
+                    '''
                }
                withCredentials([sshUserPrivateKey(credentialsId: 'ali-appuser', keyFileVariable: 'SSH_KEY', usernameVariable: 'USERNAME')]) {
                    // 打包镜像
@@ -74,23 +88,36 @@ pipeline {
                        from: "${IMAGE_NAME}.tar",
                        into: "./stone-ocean/"
                    )
-                   // 远程加载并启动
+                   // SCP 运行时环境变量文件到目标服务器（密钥不进镜像层，仅运行时注入）
+                   sshPut(
+                       remote: [ name: 'ali-server', host: ALI_HOST_IP, user: USERNAME,  identityFile: SSH_KEY, allowAnyHosts: true],
+                       from: "app.env",
+                       into: "./stone-ocean/"
+                   )
+                   // 远程加载并启动（密钥通过 env-file 运行时注入，运行后立即删除）
                    sshCommand(
                        remote: [ name: 'ali-server', host: ALI_HOST_IP, user: USERNAME,  identityFile: SSH_KEY, allowAnyHosts: true],
                        command: """
                            cd ./stone-ocean/
+                           chmod 600 app.env
                            echo "输出测试"
                            echo $VERSION
                            docker load -i ${IMAGE_NAME}.tar
                            docker stop $IMAGE_NAME || true
                            docker rm $IMAGE_NAME || true
-                           docker run -d --name "$IMAGE_NAME" -p 8101:8101 -v $FILE_PATH:$FILE_PATH  --restart unless-stopped $IMAGE_NAME:$VERSION
+                           docker run -d --name "$IMAGE_NAME" -p 8101:8101 -v $FILE_PATH:$FILE_PATH --restart unless-stopped --env-file app.env $IMAGE_NAME:$VERSION
+                           rm -f app.env
                        """
                    )
                }
 
             }
-
+            post {
+                always {
+                    // 部署成功或失败均清理 Jenkins 侧含密钥的临时环境变量文件
+                    sh 'rm -f app.env'
+                }
+            }
         }
     }
 }
