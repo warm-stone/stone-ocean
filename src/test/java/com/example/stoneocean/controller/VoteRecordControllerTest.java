@@ -2,6 +2,7 @@ package com.example.stoneocean.controller;
 
 import com.example.stoneocean.Util.Tools;
 import com.example.stoneocean.entity.ApiResponse;
+import com.example.stoneocean.entity.RankMember;
 import com.example.stoneocean.entity.VoteRecord;
 import com.example.stoneocean.entity.dto.VoteRecordSumDTO;
 import com.example.stoneocean.service.IRankMemberService;
@@ -61,6 +62,8 @@ class VoteRecordControllerTest {
         // Mock JWT claims (controller reads authentication.getPrincipal(), not getCredentials())
         when(authentication.getPrincipal()).thenReturn(jwt);
         when(jwt.getClaims()).thenReturn(Map.of("userId", USER_ID));
+        // 默认投票项存在：投票前校验 rankMemberId 是否存在（FIX-1）
+        when(rankMemberService.getById(RANK_MEMBER_ID)).thenReturn(new RankMember());
     }
 
     @Nested
@@ -187,6 +190,26 @@ class VoteRecordControllerTest {
             assertEquals(500, response.getStatusCode());
             assertEquals("投票值应当小于 1", response.getMessage());
             assertNull(response.getData());
+        }
+
+        @Test
+        @DisplayName("投票项不存在时返回失败")
+        void shouldFailWhenRankMemberNotExists() {
+            // Arrange：使用不存在的投票项 id（getById 未 stub，默认返回 null）
+            VoteRecord voteRecord = new VoteRecord();
+            voteRecord.setVoteCount(1);
+            voteRecord.setRankMemberId(999999L);
+
+            // Act
+            ApiResponse<Boolean> response = controller.voteToRankMember(voteRecord, authentication);
+
+            // Assert
+            assertEquals(500, response.getStatusCode());
+            assertEquals("投票项不存在", response.getMessage());
+            assertNull(response.getData());
+            verify(service, never()).save(any());
+            verify(service, never()).updateById(any());
+            verify(rankMemberService, never()).addScoreSum(any(), anyInt());
         }
     }
 
