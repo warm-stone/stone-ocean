@@ -28,7 +28,8 @@ CREATE TABLE t_third_party_account
     third_id     VARCHAR(64),
     account_type VARCHAR(24),
     info         JSON,
-    FOREIGN KEY idx_third_party_account_user_id (user_id) REFERENCES t_user (id),
+    CONSTRAINT fk_third_party_account_user_id FOREIGN KEY (user_id) REFERENCES t_user (id),
+    INDEX idx_third_party_account_user_id (user_id),
     INDEX idx_third_party_account_third_id (third_id)
 
 );
@@ -37,7 +38,7 @@ CREATE TABLE t_third_party_account
 CREATE TABLE t_experience
 (
     id           BIGINT PRIMARY KEY AUTO_INCREMENT, -- 主键
-    biographicId INT,
+    biographic_id INT,
     title        VARCHAR(32),
     exp          VARCHAR(1024),
     ord          INT,
@@ -151,8 +152,3 @@ CREATE TABLE t_vote4fun_announcement
 );
 
 CREATE INDEX idx_vote4fun_announcement_rank_id ON t_vote4fun_announcement (rank_id);
-
-
-
-
-show tables;
