@@ -63,7 +63,8 @@ public class RankMember implements Serializable {
     private String coverUrl;
 
     private Long creator;
-    private LocalDateTime created_time;
+    private LocalDateTime createdTime;
+    private Long modifier;
 
     private LocalDateTime updatedTime;
 
