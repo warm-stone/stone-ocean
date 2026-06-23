@@ -2,6 +2,7 @@ package com.example.stoneocean.controller;
 
 import com.example.stoneocean.Util.Tools;
 import com.example.stoneocean.entity.ApiResponse;
+import com.example.stoneocean.entity.RankMember;
 import com.example.stoneocean.entity.VoteRecord;
 import com.example.stoneocean.entity.dto.VoteRecordSumDTO;
 import com.example.stoneocean.service.IRankMemberService;
@@ -50,9 +51,15 @@ public class VoteRecordController {
         if (voteCount == null || voteCount == 0) return ApiResponse.failed("投票数不可为空");
         if (Math.abs(voteCount) > 1) return ApiResponse.failed("投票值应当小于 1");
 
+        // 校验投票项是否存在，避免对不存在的投票项产生孤儿投票记录
+        Long rankMemberId = voteRecord.getRankMemberId();
+        RankMember rankMember = rankMemberService.getById(rankMemberId);
+        if (rankMember == null) {
+            return ApiResponse.failed("投票项不存在");
+        }
+
         // 添加今日投票数据
         Long userId = (Long) ((Jwt) authentication.getPrincipal()).getClaims().get("userId");
-        Long rankMemberId = voteRecord.getRankMemberId();
         boolean ret = false;
         for (int attempt = 0; attempt < 2; attempt++) {
             VoteRecord lastRecord = service.selectLastByRankMemberIdAndCreatorIdForUpdate(rankMemberId, userId);
