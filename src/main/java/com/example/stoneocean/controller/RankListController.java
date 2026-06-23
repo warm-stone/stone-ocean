@@ -44,6 +44,12 @@ public class RankListController {
     public ApiResponse<Boolean> addRankList(@RequestBody RankList rankList, Authentication authentication) {
 
         Long userId = (Long) ((Jwt) authentication.getPrincipal()).getClaims().get("userId");
+        if (rankList.getTitle() == null || rankList.getTitle().trim().isEmpty()) {
+            return ApiResponse.failed("标题不能为空");
+        }
+        if (rankList.getTitle().length() < 2 || rankList.getTitle().length() > 50) {
+            return ApiResponse.failed("标题长度应在2到50个字符之间");
+        }
         rankList.setCreator(userId);
         boolean ret = service.save(rankList);
         return ApiResponse.success(ret);
