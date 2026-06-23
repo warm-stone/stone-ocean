@@ -48,7 +48,7 @@ public class RankMemberController {
         }
         RankList rankList = rankListService.getById(rankListId);
         if (rankList == null || rankList.getCreator() == null || !rankList.getCreator().equals(userId)) {
-            return ApiResponse.failed("无权操作：榜单不属于当前用户");
+            return ApiResponse.forbidden("无权操作：榜单不属于当前用户");
         }
         rankMember.setCreator(userId);
         boolean save = service.save(rankMember);

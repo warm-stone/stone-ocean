@@ -46,6 +46,10 @@ public class ApiResponse<T> implements Serializable {
         return new ApiResponse<T>(statusCode, message, null);
     }
 
+    public static <T> ApiResponse<T> forbidden(String message) {
+        return new ApiResponse<T>(403, message, null);
+    }
+
     public static <T> ApiResponse<T> byFlag(boolean flag, T data) {
         return ApiResponse.byFlag(flag, data, null);
     }
