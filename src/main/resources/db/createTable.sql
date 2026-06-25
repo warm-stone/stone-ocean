@@ -15,7 +15,9 @@ CREATE TABLE t_user
     avatar_url    VARCHAR(255),
     created_time  DATETIME                    DEFAULT CURRENT_TIMESTAMP,
     updated_time  DATETIME                    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_time  DATETIME COMMENT '删除时间，NULL 表示未删除'
+    deleted_time  DATETIME COMMENT '删除时间，NULL 表示未删除',
+    token_version INT DEFAULT 0 COMMENT 'Token版号，用于令牌撤销',
+    role          VARCHAR(32) DEFAULT 'USER' COMMENT '角色，默认 USER'
 );
 
 # 三方账号
@@ -26,7 +28,8 @@ CREATE TABLE t_third_party_account
     third_id     VARCHAR(64),
     account_type VARCHAR(24),
     info         JSON,
-    FOREIGN KEY idx_third_party_account_user_id (user_id) REFERENCES t_user (id),
+    CONSTRAINT fk_third_party_account_user_id FOREIGN KEY (user_id) REFERENCES t_user (id),
+    INDEX idx_third_party_account_user_id (user_id),
     INDEX idx_third_party_account_third_id (third_id)
 
 );
@@ -35,7 +38,7 @@ CREATE TABLE t_third_party_account
 CREATE TABLE t_experience
 (
     id           BIGINT PRIMARY KEY AUTO_INCREMENT, -- 主键
-    biographicId INT,
+    biographic_id INT,
     title        VARCHAR(32),
     exp          VARCHAR(1024),
     ord          INT,
@@ -121,11 +124,14 @@ CREATE TABLE t_vote4fun_vote_record
     created_time   DATETIME DEFAULT CURRENT_TIMESTAMP,
     modifier       BIGINT,
     updated_time   DATETIME,
-    deleted_time   DATETIME COMMENT '删除时间，NULL 表示未删除'
-
+    deleted_time   DATETIME COMMENT '删除时间，NULL 表示未删除',
+    -- 投票日期：由 created_time 派生，配合下面的唯一约束防止并发首次投票时插入多条当日记录
+    vote_date      DATE GENERATED ALWAYS AS (DATE(created_time)) STORED COMMENT '投票日期(派生自created_time)，用于唯一约束防并发重复投票',
+    UNIQUE KEY uk_vote4fun_vote_record_member_creator_date (rank_member_id, creator, vote_date)
 );
 CREATE INDEX idx_vote4fun_rank_member_id ON t_vote4fun_vote_record (rank_member_id);
 CREATE INDEX idx_vote4fun_creator ON t_vote4fun_vote_record (creator, created_time);
+CREATE INDEX idx_vote4fun_vote_record_member_creator_time ON t_vote4fun_vote_record (rank_member_id, creator, created_time);
 
 # 榜单通告
 CREATE TABLE t_vote4fun_announcement
@@ -146,8 +152,3 @@ CREATE TABLE t_vote4fun_announcement
 );
 
 CREATE INDEX idx_vote4fun_announcement_rank_id ON t_vote4fun_announcement (rank_id);
-
-
-
-
-show tables;

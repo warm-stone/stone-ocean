@@ -5,7 +5,7 @@ VALUES
 深度学习，LLM
 ');
 
-INSERT INTO t_experience (id, biographicId, title, exp, ord)
+INSERT INTO t_experience (id, biographic_id, title, exp, ord)
 VALUES
     (default , 1, '数据校对桌面工具', '在财务系统中除了事务保障和幂等处理，往往还需要对数据进行校对来兜底准确性，于是实现了一个拓展性较为良好的数据校对桌面工具', 1),
     (default , 1, '消息中心项目', '消息中心是基于rabbitMq的消息中转项目，提供消息必达、事件发布等服务，实现上订阅方消息互不干扰，自定义重试时间，这种方案的网络抖动时会有内存暴涨的问题，针对此问题实现了对Json消息的配置式内容提取和消息拦截',2),

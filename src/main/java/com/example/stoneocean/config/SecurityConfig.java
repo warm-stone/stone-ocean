@@ -1,5 +1,6 @@
 package com.example.stoneocean.config;
 
+import com.example.stoneocean.service.IUserService;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
@@ -17,7 +18,11 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
@@ -25,6 +30,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -42,6 +49,7 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 "/oauth2Login/**",
+                                "/auth/login",
                                 "/user/add",
                                 "/rankList/page",
                                 "/rankList/member/**",
@@ -50,12 +58,10 @@ public class SecurityConfig {
                                 "/voteRecord/statistic/**",
                                 "/game/page",
                                 "/game/member/**",
-                                "/file/load/**",
-                                "/file/upload"
+                                "/file/load/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-                .httpBasic(basic -> basic.authenticationEntryPoint(new CustomAuthEntryPoint()))
                 .oauth2ResourceServer(oauth2 ->
                         oauth2.jwt(Customizer.withDefaults()))
                 .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -76,6 +82,9 @@ public class SecurityConfig {
                 "http://localhost:5173",
                 "http://*.localhost:5173",
                 "http://127.0.0.1",
+                "http://*.home:*",
+                "http://*.home",
+                "http://192.168.100.51:*",
                 "https://*.nginx.home",
                 "https://nginx.home",
                 "https://*.warmstone.top",
@@ -98,8 +107,14 @@ public class SecurityConfig {
     private RSAPrivateKey priv;
 
     @Bean
-    JwtDecoder jwtDecoder() {
-        return NimbusJwtDecoder.withPublicKey(this.key).build();
+    JwtDecoder jwtDecoder(IUserService userService) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(this.key).build();
+        // 组合校验器：保留过期校验 + 新增 tokenVersion 版号校验（撤销机制）
+        OAuth2TokenValidator<Jwt> delegate = new DelegatingOAuth2TokenValidator<>(
+                new JwtTimestampValidator(),
+                new TokenVersionValidator(userService));
+        decoder.setJwtValidator(delegate);
+        return decoder;
     }
 
     @Bean
@@ -112,5 +127,11 @@ public class SecurityConfig {
     @Bean
     PasswordEncoder passwordEncoder() {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 }

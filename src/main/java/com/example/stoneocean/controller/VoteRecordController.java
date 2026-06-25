@@ -2,10 +2,12 @@ package com.example.stoneocean.controller;
 
 import com.example.stoneocean.Util.Tools;
 import com.example.stoneocean.entity.ApiResponse;
+import com.example.stoneocean.entity.RankMember;
 import com.example.stoneocean.entity.VoteRecord;
 import com.example.stoneocean.entity.dto.VoteRecordSumDTO;
 import com.example.stoneocean.service.IRankMemberService;
 import com.example.stoneocean.service.IVoteRecordService;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,7 +40,9 @@ public class VoteRecordController {
     }
 
     /*
-     * 不使用事务，依赖更新后总值限制限制投票数
+     * 使用事务 + (rank_member_id, creator, vote_date) 唯一约束保证投票并发安全：
+     * 首次投票 INSERT 若因并发触发唯一约束冲突，捕获 DuplicateKeyException 后重试一次走 UPDATE 路径。
+     * 每日投票值（合并后）应当小于 1，依赖更新后总值限制每日投票数。
      * */
     @PostMapping("/vote")
     @Transactional
@@ -47,24 +51,40 @@ public class VoteRecordController {
         if (voteCount == null || voteCount == 0) return ApiResponse.failed("投票数不可为空");
         if (Math.abs(voteCount) > 1) return ApiResponse.failed("投票值应当小于 1");
 
-        // 添加今日投票数据
-        Long userId = (Long) ((Jwt) authentication.getCredentials()).getClaims().get("userId");
-        VoteRecord lastRecord = service.selectLastByRankMemberIdAndCreatorId(voteRecord.getRankMemberId(), userId);
-        boolean ret;
-        if (lastRecord != null &&
-                lastRecord.getCreatedTime().isAfter(tool.localTime().toLocalDate().atStartOfDay())) {
-            voteRecord.setVoteCount(voteCount + lastRecord.getVoteCount());
-            voteRecord.setId(lastRecord.getId());
-            voteRecord.setUpdatedTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
-            voteRecord.setModifier(userId);
-
-            if (Math.abs(voteRecord.getVoteCount()) > 1) return ApiResponse.failed("每日投票值应当小于 1");
-            ret = service.updateById(voteRecord);
-        } else {
-            voteRecord.setCreator(userId);
-            ret = service.save(voteRecord);
+        // 校验投票项是否存在，避免对不存在的投票项产生孤儿投票记录
+        Long rankMemberId = voteRecord.getRankMemberId();
+        RankMember rankMember = rankMemberService.getById(rankMemberId);
+        if (rankMember == null) {
+            return ApiResponse.failed("投票项不存在");
         }
-        rankMemberService.addScoreSum(voteRecord.getRankMemberId(), voteCount);
+
+        // 添加今日投票数据
+        Long userId = (Long) ((Jwt) authentication.getPrincipal()).getClaims().get("userId");
+        boolean ret = false;
+        for (int attempt = 0; attempt < 2; attempt++) {
+            VoteRecord lastRecord = service.selectLastByRankMemberIdAndCreatorIdForUpdate(rankMemberId, userId);
+            if (lastRecord != null &&
+                    lastRecord.getCreatedTime().isAfter(tool.localTime().toLocalDate().atStartOfDay())) {
+                voteRecord.setVoteCount(voteCount + lastRecord.getVoteCount());
+                voteRecord.setId(lastRecord.getId());
+                voteRecord.setUpdatedTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
+                voteRecord.setModifier(userId);
+
+                if (Math.abs(voteRecord.getVoteCount()) > 1) return ApiResponse.failed("每日投票值应当小于 1");
+                ret = service.updateById(voteRecord);
+                break;
+            } else {
+                voteRecord.setCreator(userId);
+                try {
+                    ret = service.save(voteRecord);
+                    break;
+                } catch (DuplicateKeyException e) {
+                    // 并发竞态：另一请求已插入今日记录，重试一次走 UPDATE 路径
+                    if (attempt == 1) throw e;
+                }
+            }
+        }
+        rankMemberService.addScoreSum(rankMemberId, voteCount);
         return ApiResponse.success(ret);
     }
 }

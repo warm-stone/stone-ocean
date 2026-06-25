@@ -2,6 +2,7 @@ package com.example.stoneocean.controller;
 
 import com.example.stoneocean.Util.Tools;
 import com.example.stoneocean.entity.ApiResponse;
+import com.example.stoneocean.entity.RankMember;
 import com.example.stoneocean.entity.VoteRecord;
 import com.example.stoneocean.entity.dto.VoteRecordSumDTO;
 import com.example.stoneocean.service.IRankMemberService;
@@ -16,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 
@@ -57,9 +59,11 @@ class VoteRecordControllerTest {
 
     @BeforeEach
     void setUp() {
-        // Mock JWT claims
-        when(authentication.getCredentials()).thenReturn(jwt);
+        // Mock JWT claims (controller reads authentication.getPrincipal(), not getCredentials())
+        when(authentication.getPrincipal()).thenReturn(jwt);
         when(jwt.getClaims()).thenReturn(Map.of("userId", USER_ID));
+        // 默认投票项存在：投票前校验 rankMemberId 是否存在（FIX-1）
+        when(rankMemberService.getById(RANK_MEMBER_ID)).thenReturn(new RankMember());
     }
 
     @Nested
@@ -187,6 +191,26 @@ class VoteRecordControllerTest {
             assertEquals("投票值应当小于 1", response.getMessage());
             assertNull(response.getData());
         }
+
+        @Test
+        @DisplayName("投票项不存在时返回失败")
+        void shouldFailWhenRankMemberNotExists() {
+            // Arrange：使用不存在的投票项 id（getById 未 stub，默认返回 null）
+            VoteRecord voteRecord = new VoteRecord();
+            voteRecord.setVoteCount(1);
+            voteRecord.setRankMemberId(999999L);
+
+            // Act
+            ApiResponse<Boolean> response = controller.voteToRankMember(voteRecord, authentication);
+
+            // Assert
+            assertEquals(500, response.getStatusCode());
+            assertEquals("投票项不存在", response.getMessage());
+            assertNull(response.getData());
+            verify(service, never()).save(any());
+            verify(service, never()).updateById(any());
+            verify(rankMemberService, never()).addScoreSum(any(), anyInt());
+        }
     }
 
     @Nested
@@ -203,7 +227,7 @@ class VoteRecordControllerTest {
 
             LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(null);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(null);
             when(service.save(any(VoteRecord.class))).thenReturn(true);
 
             // Act
@@ -237,7 +261,7 @@ class VoteRecordControllerTest {
             lastRecord.setCreatedTime(yesterday);
 
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
             when(service.save(any(VoteRecord.class))).thenReturn(true);
 
             // Act
@@ -269,7 +293,7 @@ class VoteRecordControllerTest {
             lastRecord.setCreatedTime(yesterdayNight);
 
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
             when(service.save(any(VoteRecord.class))).thenReturn(true);
 
             // Act
@@ -305,7 +329,7 @@ class VoteRecordControllerTest {
             lastRecord.setCreatedTime(todayMorning);
 
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
             when(service.updateById(any(VoteRecord.class))).thenReturn(true);
 
             // Act
@@ -341,7 +365,7 @@ class VoteRecordControllerTest {
             lastRecord.setCreatedTime(todayMorning);
 
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
             when(service.updateById(any(VoteRecord.class))).thenReturn(true);
 
             // Act
@@ -375,7 +399,7 @@ class VoteRecordControllerTest {
             lastRecord.setCreatedTime(todayMorning);
 
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
             when(service.updateById(any(VoteRecord.class))).thenReturn(true);
 
             // Act
@@ -409,7 +433,7 @@ class VoteRecordControllerTest {
             lastRecord.setCreatedTime(todayMorning);
 
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
             when(service.updateById(any(VoteRecord.class))).thenReturn(true);
 
             // Act
@@ -447,7 +471,7 @@ class VoteRecordControllerTest {
             lastRecord.setCreatedTime(todayMorning);
 
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
 
             // Act
             ApiResponse<Boolean> response = controller.voteToRankMember(voteRecord, authentication);
@@ -478,7 +502,7 @@ class VoteRecordControllerTest {
             lastRecord.setCreatedTime(todayMorning);
 
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
 
             // Act
             ApiResponse<Boolean> response = controller.voteToRankMember(voteRecord, authentication);
@@ -509,7 +533,7 @@ class VoteRecordControllerTest {
             lastRecord.setCreatedTime(todayMorning);
 
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
 
             // Act
             ApiResponse<Boolean> response = controller.voteToRankMember(voteRecord, authentication);
@@ -536,7 +560,7 @@ class VoteRecordControllerTest {
             lastRecord.setCreatedTime(todayMorning);
 
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
 
             // Act
             ApiResponse<Boolean> response = controller.voteToRankMember(voteRecord, authentication);
@@ -567,7 +591,7 @@ class VoteRecordControllerTest {
             lastRecord.setCreatedTime(todayMidnight);
 
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
             when(service.save(any(VoteRecord.class))).thenReturn(true);
 
             ApiResponse<Boolean> response = controller.voteToRankMember(voteRecord, authentication);
@@ -596,7 +620,7 @@ class VoteRecordControllerTest {
             lastRecord.setCreatedTime(justAfterMidnight);
 
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
             when(service.updateById(any(VoteRecord.class))).thenReturn(true);
 
             // Act
@@ -618,7 +642,7 @@ class VoteRecordControllerTest {
 
             LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(null);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(null);
             when(service.save(any(VoteRecord.class))).thenReturn(true);
 
             // Act
@@ -648,7 +672,7 @@ class VoteRecordControllerTest {
             lastRecord.setCreatedTime(todayMorning);
 
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
             when(service.updateById(any(VoteRecord.class))).thenReturn(true);
 
             // Act
@@ -672,7 +696,7 @@ class VoteRecordControllerTest {
 
             LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(null);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(null);
             when(service.save(any(VoteRecord.class))).thenReturn(true);
 
             // Act
@@ -707,7 +731,7 @@ class VoteRecordControllerTest {
             lastRecord.setCreatedTime(todayMorning);
 
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
             when(service.updateById(any(VoteRecord.class))).thenReturn(true);
 
             // Act
@@ -736,7 +760,7 @@ class VoteRecordControllerTest {
             lastRecord.setCreatedTime(todayMorning);
 
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(lastRecord);
             when(service.updateById(any(VoteRecord.class))).thenReturn(true);
 
             // Act
@@ -756,14 +780,97 @@ class VoteRecordControllerTest {
 
             LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
             when(tool.localTime()).thenReturn(now);
-            when(service.selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID)).thenReturn(null);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID)).thenReturn(null);
             when(service.save(any(VoteRecord.class))).thenReturn(true);
 
             // Act
             controller.voteToRankMember(voteRecord, authentication);
 
             // Assert
-            verify(service).selectLastByRankMemberIdAndCreatorId(RANK_MEMBER_ID, USER_ID);
+            verify(service).selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID);
+        }
+    }
+
+    @Nested
+    @DisplayName("voteToRankMember 并发竞态测试")
+    class ConcurrentRaceTests {
+
+        @Test
+        @DisplayName("并发首次投票INSERT触发唯一约束冲突-重试走UPDATE路径")
+        void shouldRetryUpdateWhenInsertHitsDuplicateKey() {
+            // Arrange
+            VoteRecord voteRecord = new VoteRecord();
+            voteRecord.setVoteCount(1);
+            voteRecord.setRankMemberId(RANK_MEMBER_ID);
+
+            LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
+            LocalDateTime todayMorning = now.toLocalDate().atStartOfDay().plusHours(8);
+
+            // 另一并发请求已插入的今日记录
+            VoteRecord winnerRecord = new VoteRecord();
+            winnerRecord.setId(888L);
+            winnerRecord.setVoteCount(0);
+            winnerRecord.setCreatedTime(todayMorning);
+
+            when(tool.localTime()).thenReturn(now);
+            // 第一次查询：无记录（两个并发请求都判定首次投票）
+            // 第二次查询（重试）：返回获胜者已插入的记录
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID))
+                    .thenReturn(null, winnerRecord);
+            // INSERT 抛出唯一约束冲突
+            when(service.save(any(VoteRecord.class)))
+                    .thenThrow(new DuplicateKeyException("Duplicate entry"));
+            when(service.updateById(any(VoteRecord.class))).thenReturn(true);
+
+            // Act
+            ApiResponse<Boolean> response = controller.voteToRankMember(voteRecord, authentication);
+
+            // Assert
+            assertEquals(200, response.getStatusCode());
+            assertTrue(response.getData());
+            // INSERT 触发冲突后重试走 UPDATE
+            verify(service).save(any(VoteRecord.class));
+            verify(service).updateById(argThat(vr ->
+                    vr.getId().equals(888L) &&
+                    vr.getVoteCount().equals(1) &&
+                    vr.getModifier().equals(USER_ID)
+            ));
+            verify(rankMemberService).addScoreSum(RANK_MEMBER_ID, 1);
+        }
+
+        @Test
+        @DisplayName("并发竞态重试后合并值超过每日限制-返回失败")
+        void shouldFailWhenRetryMergeExceedsLimit() {
+            // Arrange
+            VoteRecord voteRecord = new VoteRecord();
+            voteRecord.setVoteCount(1);
+            voteRecord.setRankMemberId(RANK_MEMBER_ID);
+
+            LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
+            LocalDateTime todayMorning = now.toLocalDate().atStartOfDay().plusHours(8);
+
+            // 获胜者已投 +1，本次再 +1 合并为 2，超过每日限制
+            VoteRecord winnerRecord = new VoteRecord();
+            winnerRecord.setId(888L);
+            winnerRecord.setVoteCount(1);
+            winnerRecord.setCreatedTime(todayMorning);
+
+            when(tool.localTime()).thenReturn(now);
+            when(service.selectLastByRankMemberIdAndCreatorIdForUpdate(RANK_MEMBER_ID, USER_ID))
+                    .thenReturn(null, winnerRecord);
+            when(service.save(any(VoteRecord.class)))
+                    .thenThrow(new DuplicateKeyException("Duplicate entry"));
+
+            // Act
+            ApiResponse<Boolean> response = controller.voteToRankMember(voteRecord, authentication);
+
+            // Assert
+            assertEquals(500, response.getStatusCode());
+            assertEquals("每日投票值应当小于 1", response.getMessage());
+            assertNull(response.getData());
+            verify(service).save(any(VoteRecord.class));
+            verify(service, never()).updateById(any());
+            verify(rankMemberService, never()).addScoreSum(any(), anyInt());
         }
     }
 }

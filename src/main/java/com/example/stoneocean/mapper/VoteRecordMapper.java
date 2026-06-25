@@ -33,4 +33,14 @@ public interface VoteRecordMapper extends BaseMapper<VoteRecord> {
     VoteRecord selectLastByRankMemberIdAndCreatorId(@Param("rankMemberId") Long rankMemberId
     , @Param("creatorId") Long creatorId);
 
+    @Select("SELECT * " +
+            "FROM t_vote4fun_vote_record " +
+            "WHERE rank_member_id = #{rankMemberId} " +
+            "AND creator = #{creatorId} " +
+            "ORDER BY created_time DESC " +
+            "LIMIT 1 " +
+            "FOR UPDATE")
+    VoteRecord selectLastByRankMemberIdAndCreatorIdForUpdate(@Param("rankMemberId") Long rankMemberId
+    , @Param("creatorId") Long creatorId);
+
 }

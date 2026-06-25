@@ -8,6 +8,7 @@ import com.example.stoneocean.service.IUserService;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,20 +27,15 @@ import java.util.Objects;
 public class UserController {
     private final IUserService userService;
     private final ITokenService tokenService;
+    private final PasswordEncoder passwordEncoder;
 
     public UserController(IUserService userService,
-                          ITokenService tokenService) {
+                          ITokenService tokenService,
+                          PasswordEncoder passwordEncoder) {
         this.userService = userService;
         this.tokenService = tokenService;
+        this.passwordEncoder = passwordEncoder;
     }
-
-    private boolean checkUser(User user) {
-        if (user == null) return false;
-        return user.getUsername() != null
-                && user.getPassword() != null
-                && user.getNickname() != null;
-    }
-
 
     private static Long getUserId(Authentication authentication) {
         Long userId;
@@ -76,15 +72,6 @@ public class UserController {
         return ApiResponse.success(new AuthorizationDTO(token, user));
     }
 
-    @PostMapping("/login")
-    public ApiResponse<AuthorizationDTO> login(Authentication authentication) {
-        Long userId = getUserId(authentication);
-        User user = userService.getById(userId);
-        String token = this.tokenService.token(user);
-        return ApiResponse.success(new AuthorizationDTO(token, user));
-
-    }
-
     @PostMapping("/selfInfo")
     public ApiResponse<User> getSelfInfo(Authentication authentication) {
         Long userId = getUserId(authentication);
@@ -110,13 +97,28 @@ public class UserController {
         if (user.getEmail() != null && user.getEmail().isEmpty()) {
             user.setEmail(null);
         }
+        // 是否修改密码：新密码通过 passwordHash 字段传入（@JsonProperty WRITE_ONLY）
+        boolean changingPassword = user.getPasswordHash() != null && !user.getPasswordHash().isEmpty();
+        if (changingPassword) {
+            User dbUser = userService.getById(userId);
+            if (user.getOldPassword() == null || user.getOldPassword().isEmpty()) {
+                return ApiResponse.failed("请输入原密码");
+            }
+            if (!passwordEncoder.matches(user.getOldPassword(), dbUser.getPasswordHash())) {
+                return ApiResponse.failed("原密码错误");
+            }
+            // 版号 +1，使此前签发的所有令牌失效
+            int currentVersion = dbUser.getTokenVersion() == null ? 0 : dbUser.getTokenVersion();
+            user.setTokenVersion(currentVersion + 1);
+        }
         boolean flag = userService.updateById(user);
         if (!flag) {
             return ApiResponse.failed("修改失败");
         }
-
-        String token = this.tokenService.token(user);
-        return ApiResponse.success(new AuthorizationDTO(token, user));
+        // 重新查询以获取最新 tokenVersion，保证新令牌携带正确版号
+        User updated = userService.getById(userId);
+        String token = this.tokenService.token(updated);
+        return ApiResponse.success(new AuthorizationDTO(token, updated));
     }
 
 

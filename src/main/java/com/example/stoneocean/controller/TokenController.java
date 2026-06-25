@@ -63,5 +63,26 @@ public class TokenController {
         return ApiResponse.success(tokenService.token(user));
     }
 
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(Authentication authentication) {
+        Long userId = -1L;
+        if (authentication.getPrincipal() instanceof User) {
+            userId = ((User) authentication.getPrincipal()).getId();
+        }
+        else {
+            userId = (Long) ((Jwt) authentication.getPrincipal()).getClaims().get("userId");
+        }
+        User user = userService.getById(userId);
+        if (user != null) {
+            // 版号 +1，使当前令牌失效（服务端撤销）
+            int currentVersion = user.getTokenVersion() == null ? 0 : user.getTokenVersion();
+            User update = new User();
+            update.setId(userId);
+            update.setTokenVersion(currentVersion + 1);
+            userService.updateById(update);
+        }
+        return ApiResponse.<Void>success(null);
+    }
+
 
 }

@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.HashMap;
@@ -34,6 +35,9 @@ class UserControllerTest {
 
     @Mock
     private ITokenService tokenService;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @Mock
     private Authentication authentication;
@@ -192,58 +196,6 @@ class UserControllerTest {
     }
 
     @Nested
-    @DisplayName("login() 登录测试")
-    class LoginTests {
-
-        @Test
-        @DisplayName("使用 Jwt principal 登录成功")
-        void login_WithJwtPrincipal_ReturnsAuthorizationDTO() {
-            // Arrange
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("userId", 1L);
-            
-            Jwt jwt = mock(Jwt.class);
-            when(jwt.getClaims()).thenReturn(claims);
-            when(authentication.getPrincipal()).thenReturn(jwt);
-            when(userService.getById(1L)).thenReturn(testUser);
-            when(tokenService.token(testUser)).thenReturn("login-token");
-
-            // Act
-            ApiResponse<AuthorizationDTO> response = userController.login(authentication);
-
-            // Assert
-            assertEquals(200, response.getStatusCode());
-            assertNotNull(response.getData());
-            assertEquals("login-token", response.getData().getToken());
-            assertEquals(testUser, response.getData().getUser());
-        }
-
-        @Test
-        @DisplayName("使用 User principal 登录成功")
-        void login_WithUserPrincipal_ReturnsAuthorizationDTO() {
-            // Arrange
-            User principalUser = User.builder()
-                    .id(1L)
-                    .account("testuser")
-                    .passwordHash("hash")
-                    .nickname("测试")
-                    .build();
-            
-            when(authentication.getPrincipal()).thenReturn(principalUser);
-            when(userService.getById(1L)).thenReturn(testUser);
-            when(tokenService.token(testUser)).thenReturn("login-token");
-
-            // Act
-            ApiResponse<AuthorizationDTO> response = userController.login(authentication);
-
-            // Assert
-            assertEquals(200, response.getStatusCode());
-            assertNotNull(response.getData());
-            assertEquals("login-token", response.getData().getToken());
-        }
-    }
-
-    @Nested
     @DisplayName("getSelfInfo() 获取当前用户信息测试")
     class GetSelfInfoTests {
 
@@ -281,7 +233,6 @@ class UserControllerTest {
             User modifyUser = User.builder()
                     .id(1L)
                     .account("updateduser")
-                    .passwordHash("newhash")
                     .nickname("更新昵称")
                     .build();
 
@@ -294,6 +245,7 @@ class UserControllerTest {
             when(userService.getByAccount("updateduser")).thenReturn(null);
             when(userService.getByNickname("更新昵称")).thenReturn(null);
             when(userService.updateById(modifyUser)).thenReturn(true);
+            when(userService.getById(1L)).thenReturn(modifyUser);
             when(tokenService.token(modifyUser)).thenReturn("new-token");
 
             // Act
@@ -407,7 +359,6 @@ class UserControllerTest {
             User modifyUser = User.builder()
                     .id(1L)
                     .account("updateduser")
-                    .passwordHash("newhash")
                     .nickname("更新昵称")
                     .build();
 
@@ -436,7 +387,6 @@ class UserControllerTest {
             // Arrange
             User modifyUser = User.builder()
                     .account("updateduser")
-                    .passwordHash("newhash")
                     .nickname("更新昵称")
                     .build(); // id is null
 
@@ -466,7 +416,6 @@ class UserControllerTest {
             User modifyUser = User.builder()
                     .id(1L)
                     .account("updateduser")
-                    .passwordHash("newhash")
                     .nickname("更新昵称")
                     .email("")
                     .build();
@@ -497,7 +446,6 @@ class UserControllerTest {
             User modifyUser = User.builder()
                     .id(1L)
                     .account("testuser")
-                    .passwordHash("newhash")
                     .nickname("更新昵称")
                     .build();
 
@@ -528,7 +476,6 @@ class UserControllerTest {
             User modifyUser = User.builder()
                     .id(1L)
                     .account("updateduser")
-                    .passwordHash("newhash")
                     .nickname("测试用户")
                     .build();
 
@@ -575,69 +522,4 @@ class UserControllerTest {
         }
     }
 
-    @Nested
-    @DisplayName("getUserId() 私有方法测试")
-    class GetUserIdTests {
-
-        @Test
-        @DisplayName("从 User principal 提取 userId")
-        void getUserId_FromUserPrincipal_Success() {
-            // Arrange
-            User principalUser = User.builder()
-                    .id(1L)
-                    .account("testuser")
-                    .passwordHash("hash")
-                    .nickname("测试")
-                    .build();
-            
-            when(authentication.getPrincipal()).thenReturn(principalUser);
-            when(userService.getById(1L)).thenReturn(testUser);
-            when(tokenService.token(testUser)).thenReturn("token");
-
-            // Act - 通过 login 方法间接测试
-            ApiResponse<AuthorizationDTO> response = userController.login(authentication);
-
-            // Assert
-            assertEquals(200, response.getStatusCode());
-            verify(userService).getById(1L);
-        }
-
-        @Test
-        @DisplayName("从 Jwt principal 提取 userId")
-        void getUserId_FromJwtPrincipal_Success() {
-            // Arrange
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("userId", 1L);
-            
-            Jwt jwt = mock(Jwt.class);
-            when(jwt.getClaims()).thenReturn(claims);
-            when(authentication.getPrincipal()).thenReturn(jwt);
-            when(userService.getById(1L)).thenReturn(testUser);
-            when(tokenService.token(testUser)).thenReturn("token");
-
-            // Act - 通过 login 方法间接测试
-            ApiResponse<AuthorizationDTO> response = userController.login(authentication);
-
-            // Assert
-            assertEquals(200, response.getStatusCode());
-            verify(userService).getById(1L);
-        }
-
-        @Test
-        @DisplayName("userId 为 -1 时抛出异常")
-        void getUserId_InvalidUserId_ThrowsException() {
-            // Arrange
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("userId", -1L);
-            
-            Jwt jwt = mock(Jwt.class);
-            when(jwt.getClaims()).thenReturn(claims);
-            when(authentication.getPrincipal()).thenReturn(jwt);
-
-            // Act & Assert
-            assertThrows(IllegalArgumentException.class, () -> {
-                userController.login(authentication);
-            });
-        }
-    }
 }

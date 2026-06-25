@@ -33,9 +33,20 @@ public class FileManagerService implements IFileManagerService {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("文件为空");
         }
-        // 生成唯一文件名（避免覆盖）
-        // 保存文件到本地
-        String newFileName = UUID.randomUUID().toString();
+        // 生成唯一文件名（避免覆盖）；保留原始扩展名以改善下载体验与类型识别
+        String originalFilename = file.getOriginalFilename();
+        String extension = "";
+        if (originalFilename != null) {
+            int lastDot = originalFilename.lastIndexOf('.');
+            if (lastDot >= 0 && lastDot < originalFilename.length() - 1) {
+                String ext = originalFilename.substring(lastDot + 1);
+                // 仅允许字母数字扩展名，防止通过扩展名注入路径分隔符造成路径穿越
+                if (ext.matches("[a-zA-Z0-9]+")) {
+                    extension = "." + ext;
+                }
+            }
+        }
+        String newFileName = UUID.randomUUID().toString() + extension;
         Path path = Paths.get(FILE_DIR, newFileName);
         file.transferTo(path);  // 核心方法：将上传文件写入目标路径
 
@@ -45,11 +56,18 @@ public class FileManagerService implements IFileManagerService {
     public Resource loadFile(String fileName) throws MalformedURLException {
 
         // 创建文件资源
-        Path filePath = Paths.get(FILE_DIR, fileName);
+        Path filePath = Paths.get(FILE_DIR, fileName).normalize();
+        if (!filePath.startsWith(FILE_DIR)) {
+            throw new IllegalArgumentException("非法文件路径");
+        }
         return new UrlResource(filePath.toUri());
     }
 
     public Path getFilePath(String fileName) {
-        return Paths.get(FILE_DIR, fileName);
+        Path filePath = Paths.get(FILE_DIR, fileName).normalize();
+        if (!filePath.startsWith(FILE_DIR)) {
+            throw new IllegalArgumentException("非法文件路径");
+        }
+        return filePath;
     }
 }

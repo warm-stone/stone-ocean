@@ -1,5 +1,7 @@
 package com.example.stoneocean.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -13,6 +15,8 @@ import java.time.format.DateTimeFormatter;
 @RestController
 public class SseWebFluxController {
 
+    private static final Logger log = LoggerFactory.getLogger(SseWebFluxController.class);
+
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
@@ -25,7 +29,7 @@ public class SseWebFluxController {
     ) {
         // 打印重连信息
         if (lastEventId != null) {
-            System.out.println("用户 " + userId + " 从消息ID=" + lastEventId + " 处重连");
+            log.info("用户 {} 从消息ID={} 处重连", userId, lastEventId);
         }
 
         // 每3秒生成一条消息，通过Flux流推送

@@ -56,12 +56,7 @@ cat > $BUILD_CONTEXT/Dockerfile << EOF
 # 使用官方 OpenJDK 运行时作为基础镜像
 FROM openjdk:21
 
-ENV DATASOURCE_URL=$DATASOURCE_URL
-ENV DATASOURCE_USR=$DATASOURCE_USR
-ENV DATASOURCE_PSW=$DATASOURCE_PSW
-ENV GITHUB_CLIENT_ID=$GITHUB_CLIENT_ID
-ENV GITHUB_CLIENT_SECRET=$GITHUB_CLIENT_SECRET
-ENV FILE_PATH=$FILE_PATH
+# 敏感凭据不再写入镜像层（ENV），改为容器运行时通过 -e 注入
 # 设置工作目录
 WORKDIR /app
 
@@ -92,7 +87,14 @@ echo "正在启动容器..."
 docker rm -f "$IMAGE_NAME" || true
 
 # 启动新容器，映射端口 8101，并以后台模式运行
-docker run -d --name "$IMAGE_NAME" -p 8101:8101 -v "$FILE_PATH":"$FILE_PATH"  --restart unless-stopped "$IMAGE_NAME:$IMAGE_TAG"
+docker run -d --name "$IMAGE_NAME" -p 8101:8101 -v "$FILE_PATH":"$FILE_PATH" --restart unless-stopped \
+    -e DATASOURCE_URL="$DATASOURCE_URL" \
+    -e DATASOURCE_USR="$DATASOURCE_USR" \
+    -e DATASOURCE_PSW="$DATASOURCE_PSW" \
+    -e GITHUB_CLIENT_ID="$GITHUB_CLIENT_ID" \
+    -e GITHUB_CLIENT_SECRET="$GITHUB_CLIENT_SECRET" \
+    -e FILE_PATH="$FILE_PATH" \
+    "$IMAGE_NAME:$IMAGE_TAG"
 
 echo "容器已启动：镜像=$IMAGE_NAME:$IMAGE_TAG，容器名=$IMAGE_NAME，端口映射 8101:8101"
 
