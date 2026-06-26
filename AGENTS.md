@@ -16,7 +16,10 @@ Spring Boot 3.5.4 REST API with JWT auth, GitHub OAuth2, MySQL (MyBatis-Plus), W
   openssl genrsa -out src/main/resources/keyPair/app.key 2048
   openssl rsa -in src/main/resources/keyPair/app.key -pubout -out src/main/resources/keyPair/app.pub
   ```
-- **MySQL** — app won't start without a reachable database. Schema SQL in `src/main/resources/db/` (createTable.sql, initData.sql)
+- **MySQL** — app won't start without a reachable database. Schema SQL in `src/main/resources/db/`:
+  - `createTable.sql` — base schema
+  - `initData.sql` — seed data
+  - `modify.sql` — incremental ALTER migrations (run after `createTable.sql` on existing DBs, in order). Adds `token_version`/`role` to `t_user`, a `vote_date` generated column + unique key to `t_vote4fun_vote_record` (prevents concurrent duplicate votes), and renames `t_experience.biographicId` → `biographic_id`.
 
 ## Build & test commands
 
@@ -35,9 +38,8 @@ Tests are `@SpringBootTest(RANDOM_PORT)` and need the full environment (DB, keys
 ```
 config/          — Spring config beans (Security, CORS, MybatisPlus pagination, interceptors, WebSocket)
 controller/      — @RestController endpoints (11 controllers)
-entity/          — domain models + dto/ + fishing/ sub-packages
+entity/          — domain models + dto/ sub-package
   dto/           — request/response DTOs
-  fishing/       — game-related entities (Game, GameType)
 mapper/          — MyBatis-Plus mapper interfaces (extends BaseMapper<T>)
 service/         — IXxxService interfaces
   impl/          — XxxServiceImpl (extends ServiceImpl<Mapper, Entity>)
@@ -50,10 +52,10 @@ Util/            — validators & tools (UPPERCASE package name — non-standard
 ## Key conventions an agent would miss
 
 - **Soft delete**: all tables use `deleted_time` column (NULL = alive). Queries use `queryWrapper.isNull("deleted_time")`, not a MyBatis-Plus logical-delete annotation.
-- **Table naming**: `t_` prefix for base tables, `t_vote4fun_` for voting module, `t_fishing_` for game module. Entity `@TableName` maps explicitly.
+- **Table naming**: `t_` prefix for base tables, `t_vote4fun_` for voting module. Entity `@TableName` maps explicitly.
 - **Response wrapper**: every controller returns `ApiResponse<T>` (statusCode/message/data). `success()` → 200, `failed()` → 500.
 - **Context path**: all endpoints are under `/api` (server.servlet.context-path). Internal `@RequestMapping` paths like `/rankList/page` become `/api/rankList/page` externally.
-- **Auth pattern**: JWT (RSA key pair) via `oauth2ResourceServer`. User ID extracted from JWT claims: `((Jwt)auth.getCredentials()).getClaims().get("userId")` — note: uses `getCredentials()`, not `getPrincipal()`.
+- **Auth pattern**: JWT (RSA key pair) via `oauth2ResourceServer`. User ID extracted from JWT claims: `((Jwt)auth.getPrincipal()).getClaims().get("userId")` — note: uses `getPrincipal()`, not `getCredentials()`. Some controllers also branch on `getPrincipal() instanceof User` for the OAuth2-authenticated path where the principal is the `User` entity directly.
 - **Package naming**: `Interceptor/` and `Util/` are uppercase — don't "fix" this to lowercase, it's intentional project style.
 - **Dual transport**: WebSocket (`@ServerEndpoint("/ws/{userId}")`) and SSE/WebFlux (`/sse/webflux`). WebSocket uses `jakarta.websocket`, SSE uses `reactor.core.publisher.Flux`.
 - **MyBatis-Plus mapper queries**: custom queries use `@Select`/`@Update` annotations on mapper interfaces. XML files in `src/main/resources/mapper/` exist but are empty shells — don't add XML queries, use annotations instead.
@@ -68,7 +70,7 @@ Util/            — validators & tools (UPPERCASE package name — non-standard
 
 ## Gradle quirks
 
-- Gradle wrapper uses **9.2.0-milestone-2** (not a stable release) with a **Tencent mirror** (`mirrors.cloud.tencent.com/gradle`). If the mirror is down, uncomment the official URL in `gradle-wrapper.properties`.
+- Gradle wrapper uses **8.14.3** (stable) via a **Tencent mirror** (`mirrors.cloud.tencent.com/gradle`). The wrapper properties also contain commented-out alternatives (9.2.0-milestone-2 and the official `services.gradle.org` URL); switch by uncommenting the desired `distributionUrl` line.
 - `--no-daemon` is used in CI. Local dev can omit it for faster builds.
 - Code generation (`mybatis-plus-generator` + `freemarker`) is `testAndDevelopmentOnly` — not in production classpath. The backup generator is in `src/test/.../CodeGenerator_bak.java`.
 
